@@ -1,0 +1,20 @@
+import { Outlet } from 'react-router-dom';
+import { Layout } from 'antd';
+import Navbar from './Navbar';
+import Footer from './Footer';
+
+const { Content } = Layout;
+
+const MainLayout = () => {
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <Navbar />
+      <Content style={{ padding: '24px 50px' }}>
+        <Outlet />
+      </Content>
+      <Footer />
+    </Layout>
+  );
+};
+
+export default MainLayout;

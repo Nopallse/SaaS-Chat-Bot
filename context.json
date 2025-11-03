@@ -1,0 +1,217 @@
+{
+    "project": {
+      "name": "starter-app-frontend",
+      "description": "Starter project React + TypeScript dengan role-based access (auth, user, admin)",
+      "framework": "React",
+      "bundler": "Vite",
+      "language": "TypeScript",
+      "ui_library": "Ant Design",
+      "state_management": "Zustand"
+    },
+    "structure": {
+      "src": {
+        "app": {
+          "description": "Core app setup: routing, providers, guards, dan konfigurasi theme",
+          "files": [
+            "App.tsx",
+            "routes.tsx",
+            "providers.tsx",
+            "theme.ts"
+          ]
+        },
+        "features": {
+          "auth": {
+            "components": ["LoginForm.tsx", "RegisterForm.tsx"],
+            "pages": ["LoginPage.tsx", "RegisterPage.tsx"],
+            "services": ["authApi.ts"],
+            "types": ["auth.ts"]
+          },
+          "home": {
+            "components": ["HeroSection.tsx", "FeatureHighlight.tsx"],
+            "pages": ["HomePage.tsx"]
+          },
+          "user": {
+            "components": ["ProfileCard.tsx", "UserMenu.tsx"],
+            "pages": ["UserDashboardPage.tsx", "UserProfilePage.tsx"],
+            "services": ["userApi.ts"],
+            "types": ["user.ts"]
+          },
+          "admin": {
+            "components": ["StatsCard.tsx", "UserTable.tsx"],
+            "pages": ["AdminDashboardPage.tsx", "ManageUsersPage.tsx"],
+            "services": ["adminApi.ts"],
+            "types": ["admin.ts"]
+          }
+        },
+        "components": {
+          "ui": [
+            "Button.tsx",
+            "Card.tsx",
+            "Input.tsx",
+            "Modal.tsx",
+            "Spinner.tsx",
+            "Alert.tsx"
+          ],
+          "layout": {
+            "main": ["MainLayout.tsx", "Navbar.tsx", "Footer.tsx"],
+            "admin": ["AdminLayout.tsx", "AdminSidebar.tsx", "AdminHeader.tsx"]
+          }
+        },
+        "store": {
+          "authStore.ts": "State global untuk user login, role, dan token",
+          "uiStore.ts": "State global untuk loading, modal, dan notifikasi"
+        },
+        "hooks": [
+          "useAuth.ts",
+          "useFetch.ts",
+          "useLocalStorage.ts",
+          "useNotification.ts"
+        ],
+        "services": {
+          "axiosInstance.ts": "Konfigurasi dasar Axios",
+          "interceptors.ts": "JWT token & error handler"
+        },
+        "types": {
+          "global.ts": "Tipe global project",
+          "api.ts": "Tipe response dari API"
+        },
+        "utils": [
+          "routeGuard.ts",
+          "formatDate.ts",
+          "validators.ts",
+          "constants.ts"
+        ],
+        "assets": {
+          "images": ["logo.svg", "placeholder.png"],
+          "icons": ["Lucide icons"]
+        }
+      }
+    },
+    "roles": {
+      "guest": {
+        "description": "Belum login, hanya bisa akses halaman publik",
+        "routes": ["/", "/login", "/register"]
+      },
+      "user": {
+        "description": "Pengguna biasa dengan akses dashboard dan profil",
+        "routes": ["/user/*"],
+        "navbar_menu": ["Home", "Dashboard", "Profil", "Logout"]
+      },
+      "admin": {
+        "description": "Administrator dengan akses penuh ke panel admin",
+        "routes": ["/admin/*"],
+        "sidebar_menu": ["Dashboard", "Manajemen Pengguna", "Settings"]
+      }
+    },
+    "theme": {
+      "primary": {
+        "main": "#3B82F6",
+        "light": "#60A5FA",
+        "dark": "#1E40AF",
+        "contrastText": "#FFFFFF"
+      },
+      "secondary": {
+        "main": "#F59E0B",
+        "light": "#FCD34D",
+        "dark": "#B45309"
+      },
+      "typography": {
+        "fontFamily": "'Inter', 'sans-serif'",
+        "h1": "2rem",
+        "h2": "1.5rem",
+        "body1": "1rem"
+      },
+      "borderRadius": 8,
+      "spacing": 8
+    },
+    "pages": {
+      "public": {
+        "/": "HomePage - Halaman utama aplikasi",
+        "/login": "LoginPage - Form login user",
+        "/register": "RegisterPage - Form registrasi user"
+      },
+      "protected_user": {
+        "/user/dashboard": "UserDashboardPage - Ringkasan aktivitas user",
+        "/user/profile": "UserProfilePage - Profil dan pengaturan akun"
+      },
+      "protected_admin": {
+        "/admin/dashboard": "AdminDashboardPage - Statistik aplikasi",
+        "/admin/users": "ManageUsersPage - Manajemen data user"
+      }
+    },
+    "state_management": {
+      "authStore": {
+        "user": "Objek user saat ini",
+        "isAuthenticated": "Boolean",
+        "role": "'guest' | 'user' | 'admin'",
+        "actions": ["login", "logout", "register", "setRole"]
+      },
+      "uiStore": {
+        "loading": "Boolean",
+        "notification": "{ message, type, open }",
+        "actions": ["setLoading", "showNotification"]
+      }
+    },
+    "api_integration": {
+      "base_url": "process.env.VITE_API_URL",
+      "endpoints": {
+        "auth": "/api/auth/*",
+        "user": "/api/user/*",
+        "admin": "/api/admin/*"
+      },
+      "interceptors": {
+        "request": "Tambahkan JWT token di header Authorization",
+        "response": "Handle 401 dengan redirect ke login"
+      }
+    },
+    "form_validation": {
+      "library": "React Hook Form + Zod",
+      "patterns": [
+        "Email format validation",
+        "Password min 8 karakter",
+        "Field wajib diisi"
+      ]
+    },
+    "responsive_breakpoints": {
+      "xs": "0-600px (mobile)",
+      "sm": "600-960px (tablet)",
+      "md": "960-1280px (laptop kecil)",
+      "lg": "1280-1920px (desktop)",
+      "xl": "1920px+ (layar besar)"
+    },
+    "environment_variables": {
+      "VITE_API_URL": "URL backend API",
+      "VITE_APP_NAME": "Starter App"
+    },
+    "dependencies": {
+      "core": [
+        "react",
+        "react-dom",
+        "react-router-dom",
+        "typescript",
+        "vite"
+      ],
+      "ui": ["antd"],
+      "state": ["zustand"],
+      "forms": ["react-hook-form", "zod"],
+      "api": ["axios"],
+      "utils": ["date-fns", "react-hot-toast"]
+    },
+    "notes": {
+      "routing": [
+        "Gunakan ProtectedRoute dan RoleGuard di routes.tsx untuk auth dan role",
+        "Lazy loading halaman dengan React.lazy + Suspense"
+      ],
+      "zustand_patterns": [
+        "Pisahkan store berdasarkan concern",
+        "Persist auth token di localStorage",
+        "Gunakan selector untuk state derivatif"
+      ],
+      "ux_considerations": [
+        "Tampilkan loading spinner untuk async calls",
+        "Gunakan toast untuk notifikasi sukses/error",
+        "Redirect otomatis sesuai role setelah login"
+      ]
+    }
+  }
+  
