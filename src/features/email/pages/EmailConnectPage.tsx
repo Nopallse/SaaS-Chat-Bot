@@ -6,8 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 const EmailConnectPage = () => {
   const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [connected, setConnected] = useState(false);
-  const [current, setCurrent] = useState(0);
+  const [connected] = useState(false);
 
   const handleConnect = async () => {
     if (!isAuthenticated) {
@@ -56,7 +55,7 @@ const EmailConnectPage = () => {
             showIcon
           />
 
-          <Steps current={connected ? 2 : current} items={steps} />
+          <Steps current={connected ? 2 : 0} items={steps} />
 
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             {connected ? (

@@ -1,16 +1,15 @@
 import { useState } from 'react';
-import { Card, Form, Input, Button, Select, Table, Space, Tag, message } from 'antd';
-import { SendOutlined, MailOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Table, Tag, message } from 'antd';
+import { SendOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
-const { Option } = Select;
 
 const EmailBroadcastPage = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history] = useState<any[]>([]);
 
-  const handleBroadcast = async (values: any) => {
+  const handleBroadcast = async (_values: any) => {
     setLoading(true);
     try {
       // TODO: API call

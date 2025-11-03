@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { Layout } from 'antd';
 import Sidebar from '../main/Sidebar';
-import Footer from '../main/Footer';
 
 const { Content } = Layout;
 

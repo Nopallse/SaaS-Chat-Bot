@@ -8,7 +8,6 @@ const { Title } = Typography;
 
 const WaSessionPage = () => {
   const [sessions, setSessions] = useState<WhatsAppSession[]>([]);
-  const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -16,7 +15,7 @@ const WaSessionPage = () => {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [sessionForm] = Form.useForm();
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const qrPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const qrPollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { showSuccess, showError } = useNotification();
 
   // Fetch sessions on mount
@@ -114,7 +113,7 @@ const WaSessionPage = () => {
 
   const handleGetQr = async (sessionId: string) => {
     setCurrentSessionId(sessionId);
-    setLoading(true);
+    setConnecting(sessionId);
     try {
       const response = await waApi.getQr(sessionId);
       if (response.qr) {
@@ -150,7 +149,7 @@ const WaSessionPage = () => {
       const msg = error.response?.data?.message || 'Gagal mendapatkan QR code';
       showError(msg);
     } finally {
-      setLoading(false);
+      setConnecting(null);
     }
   };
 

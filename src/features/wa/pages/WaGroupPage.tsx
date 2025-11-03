@@ -230,7 +230,7 @@ const WaGroupPage = () => {
                   loading={fetching}
                   showSearch
                   filterOption={(input, option) =>
-                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                   }
                   onChange={(value) => {
                     form.setFieldsValue({ groupJid: undefined });
@@ -256,7 +256,6 @@ const WaGroupPage = () => {
                 tooltip="Pilih group dari daftar atau ketik Group JID secara manual"
               >
                 <Select
-                  mode="combobox"
                   placeholder="Pilih group atau ketik Group JID manual (contoh: 1203630xxxxxxx@g.us)"
                   showSearch
                   allowClear
@@ -264,8 +263,8 @@ const WaGroupPage = () => {
                   filterOption={(input, option) => {
                     if (!input) return true;
                     const searchText = input.toLowerCase();
-                    const label = option?.label?.toLowerCase() || '';
-                    const value = option?.value?.toLowerCase() || '';
+                    const label = String(option?.label ?? '').toLowerCase();
+                    const value = String(option?.value ?? '').toLowerCase();
                     return label.includes(searchText) || value.includes(searchText);
                   }}
                   notFoundContent={loadingGroups ? 'Memuat groups...' : groups.length === 0 ? (
@@ -353,7 +352,7 @@ const WaGroupPage = () => {
                   loading={fetching}
                   showSearch
                   filterOption={(input, option) =>
-                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                   }
                   onChange={(value) => {
                     form.setFieldsValue({ groupJid: undefined });
@@ -379,7 +378,6 @@ const WaGroupPage = () => {
                 tooltip="Pilih group dari daftar atau ketik Group JID secara manual"
               >
                 <Select
-                  mode="combobox"
                   placeholder="Pilih group atau ketik Group JID manual (contoh: 1203630xxxxxxx@g.us)"
                   showSearch
                   allowClear
@@ -387,8 +385,8 @@ const WaGroupPage = () => {
                   filterOption={(input, option) => {
                     if (!input) return true;
                     const searchText = input.toLowerCase();
-                    const label = option?.label?.toLowerCase() || '';
-                    const value = option?.value?.toLowerCase() || '';
+                    const label = String(option?.label ?? '').toLowerCase();
+                    const value = String(option?.value ?? '').toLowerCase();
                     return label.includes(searchText) || value.includes(searchText);
                   }}
                   notFoundContent={loadingGroups ? 'Memuat groups...' : groups.length === 0 ? (
@@ -494,7 +492,7 @@ const WaGroupPage = () => {
                   showSearch
                   value={selectedSessionForGroups}
                   filterOption={(input, option) =>
-                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                   }
                   onChange={(value) => {
                     setSelectedSessionForGroups(value);
