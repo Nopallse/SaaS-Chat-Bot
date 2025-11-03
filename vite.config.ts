@@ -11,6 +11,6 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['probable-grouse-firstly.ngrok-free.app'],
+    allowedHosts: ['https://saa-s-chat-bot.vercel.app'],
   },
 })
