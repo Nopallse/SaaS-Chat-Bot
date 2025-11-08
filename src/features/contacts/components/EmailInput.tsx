@@ -80,16 +80,16 @@ const EmailInput = ({
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
-    const pastedText = e.clipboardData.getText();
+    const pastedText = e.clipboardData.getData('text');
     const pastedEmails = pastedText
       .split(/[\n,\s\t]+/)
-      .map((e) => e.trim())
-      .filter((e) => e.length > 0);
+      .map((email: string) => email.trim())
+      .filter((email: string) => email.length > 0);
     
     if (pastedEmails.length > 0) {
       const addedEmails: string[] = [];
       
-      pastedEmails.forEach((email) => {
+      pastedEmails.forEach((email: string) => {
         if (email && !emails.includes(email)) {
           if (addEmail(email)) {
             addedEmails.push(email);

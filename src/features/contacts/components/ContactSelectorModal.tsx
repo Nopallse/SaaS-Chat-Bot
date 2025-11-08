@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Modal, Table, Input, Button, Space, Checkbox, Tag, Typography } from 'antd';
+import { Modal, Table, Input, Space, Tag, Typography } from 'antd';
 import { SearchOutlined, CheckOutlined } from '@ant-design/icons';
 import type { EmailContact, WhatsAppContact } from '../types/contacts';
 

@@ -73,16 +73,16 @@ const PhoneNumberInput = ({
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
-    const pastedText = e.clipboardData.getText();
+    const pastedText = e.clipboardData.getData('text');
     const pastedPhones = pastedText
       .split(/[\n,\s\t]+/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0);
+      .map((phone: string) => phone.trim())
+      .filter((phone: string) => phone.length > 0);
     
     if (pastedPhones.length > 0) {
       const addedPhones: string[] = [];
       
-      pastedPhones.forEach((phone) => {
+      pastedPhones.forEach((phone: string) => {
         if (phone && !phones.includes(phone)) {
           if (addPhoneNumber(phone)) {
             addedPhones.push(phone);

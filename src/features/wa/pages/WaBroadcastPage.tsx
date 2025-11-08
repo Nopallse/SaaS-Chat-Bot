@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Select, Table, Space, Tag, Modal, Typography, Checkbox } from 'antd';
-import { SendOutlined, PictureOutlined, FileTextOutlined, ContactsOutlined } from '@ant-design/icons';
+import { SendOutlined, PictureOutlined, FileTextOutlined } from '@ant-design/icons';
 import { waApi, type WhatsAppSession, type BroadcastResult } from '../services/waApi';
 import { useNotification } from '@/hooks/useNotification';
 import { contactsApi } from '@/features/contacts/services/contactsApi';
