@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Select, Table, Space, Tag, Modal, Typography, Checkbox } from 'antd';
-import { SendOutlined, PictureOutlined, FileTextOutlined } from '@ant-design/icons';
+import { SendOutlined, PictureOutlined, FileTextOutlined, ContactsOutlined } from '@ant-design/icons';
 import { waApi, type WhatsAppSession, type BroadcastResult } from '../services/waApi';
 import { useNotification } from '@/hooks/useNotification';
+import { contactsApi } from '@/features/contacts/services/contactsApi';
+import type { WhatsAppContact } from '@/features/contacts/types/contacts';
+import ContactSelectorModal from '@/features/contacts/components/ContactSelectorModal';
+import PhoneNumberInput from '@/features/contacts/components/PhoneNumberInput';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -17,6 +21,9 @@ const WaBroadcastPage = () => {
   const [history, setHistory] = useState<any[]>([]);
   const [resultModalVisible, setResultModalVisible] = useState(false);
   const [broadcastResult, setBroadcastResult] = useState<BroadcastResult | null>(null);
+  const [contacts, setContacts] = useState<WhatsAppContact[]>([]);
+  const [fetchingContacts, setFetchingContacts] = useState(false);
+  const [contactSelectorVisible, setContactSelectorVisible] = useState(false);
   const { showSuccess, showError } = useNotification();
 
   useEffect(() => {
@@ -36,14 +43,47 @@ const WaBroadcastPage = () => {
     }
   };
 
+  const fetchContacts = async () => {
+    setFetchingContacts(true);
+    try {
+      const data = await contactsApi.getContacts();
+      setContacts(data?.whatsapp || []);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Gagal memuat contacts';
+      showError(msg);
+    } finally {
+      setFetchingContacts(false);
+    }
+  };
+
+  const handleOpenContactSelector = () => {
+    fetchContacts();
+    setContactSelectorVisible(true);
+  };
+
+  const handleContactSelect = (selectedPhones: string[]) => {
+    const currentPhones = form.getFieldValue('phones') || [];
+    
+    // Combine existing and selected, remove duplicates
+    const allPhones = [...new Set([...currentPhones, ...selectedPhones])];
+    form.setFieldsValue({ phones: allPhones });
+    setContactSelectorVisible(false);
+    showSuccess(`${selectedPhones.length} contact dipilih`);
+  };
+
   const handleBroadcast = async (values: any) => {
     setLoading(true);
     try {
-      // Parse phone numbers from textarea (split by newline, filter empty)
-      const phoneNumbers = values.phones
-        .split('\n')
-        .map((p: string) => p.trim())
-        .filter((p: string) => p.length > 0);
+      // Get phone numbers from array or parse from string (backward compatibility)
+      let phoneNumbers: string[] = [];
+      if (Array.isArray(values.phones)) {
+        phoneNumbers = values.phones.filter((p: string) => p && p.trim().length > 0);
+      } else if (typeof values.phones === 'string') {
+        phoneNumbers = values.phones
+          .split('\n')
+          .map((p: string) => p.trim())
+          .filter((p: string) => p.length > 0);
+      }
 
       if (phoneNumbers.length === 0) {
         showError('Minimal 1 nomor telepon diperlukan!');
@@ -224,12 +264,12 @@ const WaBroadcastPage = () => {
           <Form.Item 
             name="phones" 
             label="Nomor Telepon" 
-            rules={[{ required: true, message: 'Nomor telepon wajib diisi!' }]}
-            tooltip="Masukkan nomor telepon, satu nomor per baris (contoh: 62812345678)"
+            rules={[{ required: true, message: 'Minimal 1 nomor telepon diperlukan!' }]}
+            tooltip="Masukkan nomor telepon. Tekan Enter, koma, atau spasi untuk menambah nomor. Bisa juga paste beberapa nomor sekaligus."
           >
-            <TextArea
-              rows={6}
-              placeholder="Masukkan nomor telepon, satu nomor per baris (contoh: 62812345678)"
+            <PhoneNumberInput
+              placeholder="Masukkan nomor telepon (contoh: 62812345678)"
+              onSelectFromContacts={handleOpenContactSelector}
             />
           </Form.Item>
 
@@ -343,6 +383,16 @@ const WaBroadcastPage = () => {
           </div>
         )}
       </Modal>
+
+      {/* Contact Selector Modal */}
+      <ContactSelectorModal
+        open={contactSelectorVisible}
+        onCancel={() => setContactSelectorVisible(false)}
+        onOk={handleContactSelect}
+        contacts={contacts}
+        type="whatsapp"
+        loading={fetchingContacts}
+      />
     </div>
   );
 };

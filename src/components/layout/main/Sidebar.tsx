@@ -50,6 +50,10 @@ const Sidebar = () => {
           key: '/wa/group',
           label: <Link to="/wa/group">Groups</Link>,
         },
+        {
+          key: '/wa/contacts',
+          label: <Link to="/wa/contacts">Contacts</Link>,
+        },
       ],
     },
     {
@@ -64,6 +68,10 @@ const Sidebar = () => {
         {
           key: '/email/broadcast',
           label: <Link to="/email/broadcast">Broadcast</Link>,
+        },
+        {
+          key: '/email/contacts',
+          label: <Link to="/email/contacts">Contacts</Link>,
         },
       ],
     },
