@@ -1,12 +1,12 @@
-import { Layout, Menu, Button, Dropdown, Avatar, Space, Typography } from 'antd';
+import { Layout, Menu, Button, Dropdown, Avatar, Space } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserOutlined, LogoutOutlined, DashboardOutlined, HomeOutlined, MailOutlined, MessageOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, DashboardOutlined, HomeOutlined } from '@ant-design/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/authStore';
 import type { MenuProps } from 'antd';
+import logoImage from '@/assets/logo.png';
 
 const { Header } = Layout;
-const { Text } = Typography;
 
 const Navbar = () => {
   const { isAuthenticated, role, user } = useAuth();
@@ -81,18 +81,14 @@ const Navbar = () => {
         zIndex: 100,
       }}
     >
-      <Space align="center" size={16} style={{ minWidth: 0 }}>
-        <Space align="center" size={8}>
-          <MessageOutlined style={{ color: '#1677ff', fontSize: 20 }} />
-          <MailOutlined style={{ color: '#1677ff', fontSize: 20 }} />
-        </Space>
-        <Text style={{ color: '#1677ff', fontWeight: 600, fontSize: 18, whiteSpace: 'nowrap' }}>Blastify</Text>
+      <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1, gap: 16 }}>
+        <img src={logoImage} alt="Logo" style={{ height: 32, display: 'block' }} />
         <Menu
           mode="horizontal"
           items={menuItems}
-          style={{ flex: 1, minWidth: 0, background: 'transparent', borderBottom: 'none' }}
+          style={{ flex: 1, minWidth: 0, background: 'transparent', borderBottom: 'none', alignItems: 'center', display: 'flex' }}
         />
-      </Space>
+      </div>
 
       <div>
         {isAuthenticated ? (

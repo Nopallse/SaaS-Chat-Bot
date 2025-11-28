@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { Card, Button, Space, Tag, message, Steps, Alert } from 'antd';
+import { useState, useEffect } from 'react';
+import { Card, Button, Space, Tag, message, Steps, Alert, List } from 'antd';
 import { CheckCircleOutlined, GoogleOutlined, LinkOutlined } from '@ant-design/icons';
 import { useAuth } from '@/hooks/useAuth';
+import { emailApi } from '@/features/email/services/emailApi';
 
 const EmailConnectPage = () => {
   const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [connected] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [accounts, setAccounts] = useState<Array<{ id: string; email: string }>>([]);
 
   const handleConnect = async () => {
     if (!isAuthenticated) {
@@ -15,16 +17,36 @@ const EmailConnectPage = () => {
     }
     setLoading(true);
     try {
-      // TODO: API call to get connect URL
-      // const response = await emailApi.getConnectUrl();
-      // window.location.href = response.url;
-      message.info('Redirecting to Google...');
+  const response = await emailApi.getConnectUrl();
+  const url = typeof response === 'string' ? response : response?.url;
+      if (url) {
+        // redirect to Google OAuth URL
+        window.location.href = url;
+      } else {
+        message.error('No connect URL returned from server');
+      }
     } catch (error) {
       message.error('Failed to get connect URL');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        const data = await emailApi.getAccounts();
+        if (Array.isArray(data) && data.length > 0) {
+          setAccounts(data);
+          setConnected(true);
+        }
+      } catch (err) {
+        // ignore: assume not connected or endpoint missing
+      }
+    };
+
+    loadAccounts();
+  }, []);
 
   const steps = [
     {
@@ -86,10 +108,21 @@ const EmailConnectPage = () => {
           </div>
 
           <Card title="Connected Accounts" size="small">
-            <Space direction="vertical" style={{ width: '100%' }}>
-              {/* TODO: List connected accounts */}
+            {accounts.length === 0 ? (
               <p style={{ color: '#8c8c8c', textAlign: 'center' }}>No connected accounts</p>
-            </Space>
+            ) : (
+              <List
+                dataSource={accounts}
+                renderItem={(item) => (
+                  <List.Item>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                      <span>{item.email}</span>
+                      <Tag color="blue">Connected</Tag>
+                    </Space>
+                  </List.Item>
+                )}
+              />
+            )}
           </Card>
         </Space>
       </Card>

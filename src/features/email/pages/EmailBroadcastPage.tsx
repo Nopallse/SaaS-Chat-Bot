@@ -6,6 +6,7 @@ import type { EmailContact } from '@/features/contacts/types/contacts';
 import ContactSelectorModal from '@/features/contacts/components/ContactSelectorModal';
 import EmailInput from '@/features/contacts/components/EmailInput';
 import { useNotification } from '@/hooks/useNotification';
+import { emailApi } from '@/features/email/services/emailApi';
 
 const { TextArea } = Input;
 
@@ -66,9 +67,22 @@ const EmailBroadcastPage = () => {
         return;
       }
 
-      // TODO: API call
-      message.success('Email broadcast started!');
-      form.resetFields();
+      // Call backend to start broadcast
+      try {
+        await emailApi.sendBroadcast({
+          fromEmail: values.fromEmail,
+          emails,
+          subject: values.subject,
+          html: values.html,
+          delayMs: values.delayMs || 1000,
+          jitterMs: values.jitterMs || 400,
+        });
+        message.success('Email broadcast started!');
+        form.resetFields();
+      } catch (err: any) {
+        const msg = err?.response?.data?.message || 'Failed to start broadcast';
+        showError(msg);
+      }
     } catch (error) {
       message.error('Failed to start broadcast');
     } finally {
