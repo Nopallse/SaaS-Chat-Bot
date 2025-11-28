@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Card, Form, Input, Button, Table, Tag, message } from 'antd';
-import { SendOutlined } from '@ant-design/icons';
+import { useState, useEffect } from 'react';
+import { Card, Form, Input, Button, Table, Tag, message, Select, Space, Alert } from 'antd';
+import { SendOutlined, MailOutlined, LinkOutlined } from '@ant-design/icons';
 import { contactsApi } from '@/features/contacts/services/contactsApi';
 import type { EmailContact } from '@/features/contacts/types/contacts';
 import ContactSelectorModal from '@/features/contacts/components/ContactSelectorModal';
@@ -9,15 +9,35 @@ import { useNotification } from '@/hooks/useNotification';
 import { emailApi } from '@/features/email/services/emailApi';
 
 const { TextArea } = Input;
+const { Option } = Select;
 
 const EmailBroadcastPage = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [accounts, setAccounts] = useState<Array<{ id: string; email: string }>>([]);
   const [history] = useState<any[]>([]);
   const [contacts, setContacts] = useState<EmailContact[]>([]);
   const [fetchingContacts, setFetchingContacts] = useState(false);
   const [contactSelectorVisible, setContactSelectorVisible] = useState(false);
   const { showSuccess, showError } = useNotification();
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    setFetching(true);
+    try {
+      const data = await emailApi.getAccounts();
+      setAccounts(data || []);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Gagal memuat email accounts';
+      showError(msg);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const fetchContacts = async () => {
     setFetchingContacts(true);
@@ -50,6 +70,13 @@ const EmailBroadcastPage = () => {
   const handleBroadcast = async (values: any) => {
     setLoading(true);
     try {
+      // Check if any accounts are connected
+      if (accounts.length === 0) {
+        showError('Tidak ada email account yang terhubung. Silakan hubungkan Gmail account terlebih dahulu.');
+        setLoading(false);
+        return;
+      }
+
       // Get emails from array or parse from string (backward compatibility)
       let emails: string[] = [];
       if (Array.isArray(values.emails)) {
@@ -135,10 +162,43 @@ const EmailBroadcastPage = () => {
 
   return (
     <div style={{ padding: '24px' }}>
+      {accounts.length === 0 && !fetching && (
+        <Alert
+          message="No Connected Email Accounts"
+          description={
+            <div>
+              You need to connect a Gmail account before you can send email broadcasts.{' '}
+              <a href="/email/connect">
+                <LinkOutlined /> Connect Gmail Account
+              </a>
+            </div>
+          }
+          type="warning"
+          showIcon
+          style={{ marginBottom: '16px' }}
+        />
+      )}
+
       <Card title="Email Broadcast">
         <Form form={form} layout="vertical" onFinish={handleBroadcast}>
-          <Form.Item name="fromEmail" label="From Email" rules={[{ required: true, type: 'email' }]}>
-            <Input placeholder="sender@example.com" />
+          <Form.Item name="fromEmail" label="From Email" rules={[{ required: true, message: 'From email wajib dipilih!' }]}>
+            <Select
+              placeholder="Pilih email account (hanya yang terhubung)"
+              loading={fetching}
+              showSearch
+              filterOption={(input, option) =>
+                String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {accounts.map((account) => (
+                <Option key={account.id || account.email} value={account.email} label={account.email}>
+                  <Space>
+                    <MailOutlined />
+                    {account.email}
+                  </Space>
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item 
@@ -170,7 +230,14 @@ const EmailBroadcastPage = () => {
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" icon={<SendOutlined />} loading={loading} size="large">
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              icon={<SendOutlined />} 
+              loading={loading} 
+              size="large"
+              disabled={accounts.length === 0}
+            >
               Start Email Broadcast
             </Button>
           </Form.Item>
