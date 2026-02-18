@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, Button, Input, Space, Table, Tag, Modal, Form, Image, Typography } from 'antd';
+import { App, Card, Button, Input, Space, Table, Tag, Modal, Form, Image, Typography } from 'antd';
 import { PlusOutlined, QrcodeOutlined, DisconnectOutlined, ReloadOutlined } from '@ant-design/icons';
 import { waApi, type WhatsAppSession } from '../services/waApi';
 import { useNotification } from '@/hooks/useNotification';
@@ -16,6 +16,7 @@ const WaSessionPage = () => {
   const [sessionForm] = Form.useForm();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const qrPollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { modal } = App.useApp();
   const { showSuccess, showError } = useNotification();
 
   // Fetch sessions on mount
@@ -31,6 +32,13 @@ const WaSessionPage = () => {
       }
     };
   }, []);
+
+  const clearQrPolling = () => {
+    if (qrPollIntervalRef.current) {
+      clearInterval(qrPollIntervalRef.current);
+      qrPollIntervalRef.current = null;
+    }
+  };
 
   const fetchSessions = async () => {
     setFetching(true);
@@ -102,7 +110,7 @@ const WaSessionPage = () => {
             danger
             icon={<DisconnectOutlined />}
             onClick={() => handleLogout(record.id)}
-            disabled={!record.connected}
+            disabled={connecting === record.id}
           >
             Logout
           </Button>
@@ -210,7 +218,7 @@ const WaSessionPage = () => {
   };
 
   const handleLogout = async (sessionId: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Logout dari WhatsApp?',
       content: 'Apakah Anda yakin ingin logout dari session ini?',
       okText: 'Ya, Logout',
@@ -219,6 +227,12 @@ const WaSessionPage = () => {
         try {
           await waApi.logoutSession(sessionId);
           showSuccess('Logout berhasil!');
+          if (currentSessionId === sessionId) {
+            clearQrPolling();
+            setQrModalVisible(false);
+            setCurrentSessionId(null);
+            setConnecting(null);
+          }
           fetchSessions();
         } catch (error: any) {
           const msg = error.response?.data?.message || 'Gagal logout';
@@ -370,10 +384,7 @@ const WaSessionPage = () => {
           setQrModalVisible(false);
           setCurrentSessionId(null);
           setConnecting(null);
-          if (qrPollIntervalRef.current) {
-            clearInterval(qrPollIntervalRef.current);
-            qrPollIntervalRef.current = null;
-          }
+          clearQrPolling();
         }}
         footer={[
           <Button key="refresh" onClick={() => currentSessionId && handleGetQr(currentSessionId)}>
@@ -383,10 +394,7 @@ const WaSessionPage = () => {
             setQrModalVisible(false);
             setCurrentSessionId(null);
             setConnecting(null);
-            if (qrPollIntervalRef.current) {
-              clearInterval(qrPollIntervalRef.current);
-              qrPollIntervalRef.current = null;
-            }
+            clearQrPolling();
           }}>
             Tutup
           </Button>,

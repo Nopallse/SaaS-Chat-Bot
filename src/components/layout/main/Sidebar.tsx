@@ -39,6 +39,10 @@ const Sidebar = () => {
       label: 'WhatsApp',
       children: [
         {
+          key: '/wa/chat',
+          label: <Link to="/wa/chat">Chat Console</Link>,
+        },
+        {
           key: '/wa/session',
           label: <Link to="/wa/session">Sessions</Link>,
         },

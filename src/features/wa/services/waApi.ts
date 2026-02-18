@@ -114,6 +114,35 @@ export interface GroupDmMembersResult {
   }>;
 }
 
+export interface WhatsAppConversation {
+  id: string;
+  sessionId: string;
+  jid: string;
+  name?: string | null;
+  isGroup: boolean;
+  lastMessageId?: string | null;
+  lastMessageText?: string | null;
+  lastMessageType?: string | null;
+  lastMessageAt?: string | null;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+  alternativeJids?: string[]; // Array of all JIDs that were merged for this contact
+}
+
+export interface WhatsAppMessage {
+  id: string;
+  sessionId: string;
+  phone: string;
+  direction: 'INCOMING' | 'OUTGOING';
+  messageId?: string | null;
+  text?: string | null;
+  type?: string | null;
+  mediaUrl?: string | null;
+  status: string;
+  createdAt: string;
+}
+
 export const waApi = {
   // Get list of all sessions
   getSessions: async (): Promise<WhatsAppSession[]> => {
@@ -209,6 +238,35 @@ export const waApi = {
     const payload: any = response.data;
     const result = payload?.data || payload;
     return result;
+  },
+
+  // Get conversation list for a session
+  getConversationList: async (sessionId: string, search?: string): Promise<WhatsAppConversation[]> => {
+    const params = search ? { search } : {};
+    const response = await axiosInstance.get(`/wa/list-conversations/${sessionId}`, { params });
+    const payload: any = response.data;
+    return payload?.data || payload || [];
+  },
+
+  // Get messages for a specific conversation
+  getMessages: async (sessionId: string, jid: string): Promise<WhatsAppMessage[]> => {
+    const response = await axiosInstance.get(`/wa/conversations/${sessionId}/${encodeURIComponent(jid)}`);
+    const payload: any = response.data;
+    return payload?.data || payload || [];
+  },
+
+  // Send chat message (reply from console)
+  sendChatMessage: async (sessionId: string, to: string, text: string): Promise<{ messageId: string | null; jid: string }> => {
+    const response = await axiosInstance.post('/wa/send', { sessionId, to, text });
+    const payload: any = response.data;
+    return payload?.data || payload;
+  },
+
+  // Mark conversation as read
+  markAsRead: async (sessionId: string, jid: string): Promise<{ success: boolean }> => {
+    const response = await axiosInstance.post(`/wa/conversations/${sessionId}/${encodeURIComponent(jid)}/mark-as-read`);
+    const payload: any = response.data;
+    return payload?.data || payload;
   },
 };
 

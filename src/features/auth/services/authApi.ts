@@ -30,21 +30,20 @@ export const authApi = {
 		};
 	},
 
-	register: async (data: RegisterData): Promise<AuthResponse> => {
+	register: async (data: RegisterData): Promise<{ user: any; message: string; requiresVerification: boolean }> => {
 		const response = await axiosInstance.post('/auth/register', {
 			name: data.name,
 			email: data.email,
 			password: data.password,
 		});
 
-		// Dukungan 3 pola respons:
-		// 1) { access_token, user }
-		// 2) { statusCode, message, data: { access_token, user } }
-		// 3) { statusCode, message, data: { ...userFields } } -> fallback login
+		// Dukungan pola respons:
+		// { statusCode, message, data: { success, message, user } }
 		const payload: any = response.data;
 		const wrapped = payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload;
 
 		if (wrapped?.access_token && wrapped?.user) {
+			// Auto-login jika ada token
 			return {
 				user: {
 					id: wrapped.user.id,
@@ -53,12 +52,21 @@ export const authApi = {
 					role: normalizeRole(wrapped.user.role),
 					createdAt: new Date().toISOString(),
 				},
-				token: wrapped.access_token,
+				message: wrapped.message || 'Registered successfully',
+				requiresVerification: false,
 			};
 		}
 
-		// Jika BE hanya mengembalikan user tanpa token, lakukan login manual
-		return await authApi.login({ email: data.email, password: data.password });
+		// Jika hanya user info tanpa token, berarti perlu verifikasi
+		if (wrapped?.user) {
+			return {
+				user: wrapped.user,
+				message: wrapped.message || 'Please verify your email to activate your account',
+				requiresVerification: true,
+			};
+		}
+
+		throw new Error('Invalid registration response');
 	},
 
 	logout: async (): Promise<void> => {

@@ -18,6 +18,7 @@ const ManageUsersPage = lazy(() => import('@/features/admin/pages/ManageUsersPag
 const WaSessionPage = lazy(() => import('@/features/wa/pages/WaSessionPage'));
 const WaBroadcastPage = lazy(() => import('@/features/wa/pages/WaBroadcastPage'));
 const WaGroupPage = lazy(() => import('@/features/wa/pages/WaGroupPage'));
+const WaChatConsolePage = lazy(() => import('@/features/wa/pages/WaChatConsolePage'));
 const WaContactsPage = lazy(() => import('@/features/contacts/pages/WaContactsPage'));
 const EmailConnectPage = lazy(() => import('@/features/email/pages/EmailConnectPage'));
 const EmailBroadcastPage = lazy(() => import('@/features/email/pages/EmailBroadcastPage'));
@@ -55,6 +56,7 @@ export const AppRoutes = () => {
             <Route path="/wa/session" element={<WaSessionPage />} />
             <Route path="/wa/broadcast" element={<WaBroadcastPage />} />
             <Route path="/wa/group" element={<WaGroupPage />} />
+            <Route path="/wa/chat" element={<WaChatConsolePage />} />
             <Route path="/wa/contacts" element={<WaContactsPage />} />
             <Route path="/email/connect" element={<EmailConnectPage />} />
             <Route path="/email/broadcast" element={<EmailBroadcastPage />} />

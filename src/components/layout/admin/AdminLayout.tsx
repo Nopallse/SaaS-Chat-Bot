@@ -10,11 +10,18 @@ const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
       <AdminSidebar collapsed={collapsed} />
-      <Layout>
-        <AdminHeader collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-        <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', borderRadius: 8 }}>
+      <Layout style={{ background: '#f5f7fa' }}>
+        <AdminHeader />
+        <Content 
+          style={{ 
+            margin: '24px 24px 24px 24px',
+            padding: 0,
+            minHeight: 280,
+            background: 'transparent'
+          }}
+        >
           <Outlet />
         </Content>
       </Layout>
