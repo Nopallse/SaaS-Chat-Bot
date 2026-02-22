@@ -85,7 +85,7 @@ cp .env.example .env
 
 Edit `.env` sesuai kebutuhan:
 ```env
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=https://www.api-mitbiz.ybbal.dev
 VITE_APP_NAME=Starter App
 ```
 
@@ -145,7 +145,7 @@ export const theme: ThemeConfig = {
 
 Backend API base URL dikonfigurasi di `.env`:
 ```
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=https://www.api-mitbiz.ybbal.dev
 ```
 
 API endpoints:

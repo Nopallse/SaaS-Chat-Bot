@@ -201,5 +201,6 @@ const RegisterPage = () => {
       </Modal>
     </>
   );
+};
 
 export default RegisterPage;

@@ -23,6 +23,7 @@ const WaContactsPage = lazy(() => import('@/features/contacts/pages/WaContactsPa
 const EmailConnectPage = lazy(() => import('@/features/email/pages/EmailConnectPage'));
 const EmailBroadcastPage = lazy(() => import('@/features/email/pages/EmailBroadcastPage'));
 const EmailContactsPage = lazy(() => import('@/features/contacts/pages/EmailContactsPage'));
+const AiAgentPage = lazy(() => import('@/features/ai/pages/AiAgentPage'));
 
 const LoadingFallback = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -61,6 +62,7 @@ export const AppRoutes = () => {
             <Route path="/email/connect" element={<EmailConnectPage />} />
             <Route path="/email/broadcast" element={<EmailBroadcastPage />} />
             <Route path="/email/contacts" element={<EmailContactsPage />} />
+            <Route path="/ai/agent" element={<AiAgentPage />} />
           </Route>
 
           {/* Admin routes dengan AdminLayout */}

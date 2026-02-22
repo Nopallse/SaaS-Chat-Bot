@@ -7,6 +7,7 @@ import {
   MailOutlined,
   LogoutOutlined,
   ApiOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/authStore';
@@ -80,6 +81,17 @@ const Sidebar = () => {
       ],
     },
     {
+      key: 'ai',
+      icon: <RobotOutlined />,
+      label: 'AI',
+      children: [
+        {
+          key: '/ai/agent',
+          label: <Link to="/ai/agent">AI Agent</Link>,
+        },
+      ],
+    },
+    {
       key: '/user/profile',
       icon: <UserOutlined />,
       label: <Link to="/user/profile">Profile</Link>,
@@ -130,7 +142,7 @@ const Sidebar = () => {
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
-        defaultOpenKeys={['whatsapp', 'email']}
+        defaultOpenKeys={['whatsapp', 'email', 'ai']}
         items={menuItems}
         style={{ borderRight: 0, height: 'calc(100vh - 180px)', overflow: 'auto' }}
       />

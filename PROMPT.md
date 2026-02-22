@@ -401,7 +401,7 @@ interface UIStore {
 
 Create `.env` file:
 ```env
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=https://www.api-mitbiz.ybbal.dev
 VITE_APP_NAME=Blastify
 ```
 

@@ -13,6 +13,7 @@ import {
   Spin,
   Dropdown,
   Tag,
+  Tooltip,
 } from 'antd';
 import {
   SendOutlined,
@@ -22,6 +23,9 @@ import {
   UserOutlined,
   MoreOutlined,
   ReloadOutlined,
+  PlayCircleOutlined,
+  FileOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import {
   waApi,
@@ -52,6 +56,9 @@ const WaChatConsolePage = () => {
   const [loadingConvos, setLoadingConvos] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [attachedPreview, setAttachedPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldSmoothScrollRef = useRef<boolean>(true);
   const socketRef = useRef<Socket | null>(null);
@@ -150,6 +157,7 @@ const WaChatConsolePage = () => {
       name?: string | null;
       text?: string | null;
       type?: string | null;
+      mediaUrl?: string | null;
       fromMe: boolean;
       createdAt: string | Date;
     }) => {
@@ -185,6 +193,7 @@ const WaChatConsolePage = () => {
               messageId: payload.id,
               text: payload.text ?? null,
               type: payload.type ?? null,
+              mediaUrl: payload.mediaUrl ?? null,
               status: 'SENT',
               createdAt,
             },
@@ -339,10 +348,88 @@ const WaChatConsolePage = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  const handleFileSelect = (file: File) => {
+    setAttachedFile(file);
+    // Generate preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setAttachedPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setAttachedPreview(null);
+    }
+  };
+
+  const clearAttachment = () => {
+    setAttachedFile(null);
+    setAttachedPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSendFile = async () => {
+    if (!attachedFile || !selectedConversation || !selectedSessionId) return;
+    const caption = messageInput.trim() || undefined;
+
+    setSending(true);
+
+    // Optimistic message
+    const isImage = attachedFile.type.startsWith('image/');
+    const tempMsg: WhatsAppMessage = {
+      id: `temp-${Date.now()}`,
+      sessionId: selectedSessionId,
+      phone: selectedConversation.jid,
+      direction: 'OUTGOING',
+      text: caption || null,
+      type: isImage ? 'imageMessage' : 'documentMessage',
+      mediaUrl: attachedPreview, // local preview for images
+      status: 'SENT',
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempMsg]);
+    const savedCaption = caption;
+    const savedFile = attachedFile;
+    clearAttachment();
+    setMessageInput('');
+
+    try {
+      if (isImage) {
+        const result = await waApi.sendChatImage(
+          selectedSessionId,
+          selectedConversation.jid,
+          savedFile,
+          savedCaption,
+        );
+        if (result?.messageId) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempMsg.id
+                ? { ...m, id: result.messageId!, messageId: result.messageId, mediaUrl: result.mediaUrl }
+                : m,
+            ),
+          );
+        }
+      } else {
+        const result = await waApi.sendChatDocument(
+          selectedSessionId,
+          selectedConversation.jid,
+          savedFile,
+          savedCaption,
+        );
+        if (result?.messageId) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempMsg.id
+                ? { ...m, id: result.messageId!, messageId: result.messageId, mediaUrl: result.mediaUrl }
+                : m,
+            ),
+          );
+        }
+      }
+    } catch {
+      showError('Gagal mengirim file');
+      setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
+    } finally {
+      setSending(false);
     }
   };
 
@@ -686,8 +773,53 @@ const WaChatConsolePage = () => {
                             boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
                           }}
                         >
+                          {/* Media content */}
+                          {msg.mediaUrl && (
+                            <div style={{ marginBottom: msg.text ? 6 : 0 }}>
+                              {msg.type?.includes('image') ? (
+                                <img
+                                  src={msg.mediaUrl}
+                                  alt="media"
+                                  style={{
+                                    maxWidth: '100%',
+                                    borderRadius: 8,
+                                    cursor: 'pointer',
+                                  }}
+                                  onClick={() => window.open(msg.mediaUrl!, '_blank')}
+                                />
+                              ) : msg.type?.includes('video') ? (
+                                <div
+                                  style={{
+                                    position: 'relative',
+                                    cursor: 'pointer',
+                                    background: '#000',
+                                    borderRadius: 8,
+                                    padding: '24px 0',
+                                    textAlign: 'center',
+                                  }}
+                                  onClick={() => window.open(msg.mediaUrl!, '_blank')}
+                                >
+                                  <PlayCircleOutlined style={{ fontSize: 36, color: '#fff' }} />
+                                  <div style={{ color: '#fff', fontSize: 11, marginTop: 4 }}>Video</div>
+                                </div>
+                              ) : msg.type?.includes('audio') || msg.type?.includes('ptt') ? (
+                                <audio controls src={msg.mediaUrl} style={{ maxWidth: '100%' }} />
+                              ) : msg.type?.includes('document') || msg.type?.includes('sticker') ? (
+                                <a href={msg.mediaUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <FileOutlined />
+                                  <span>{msg.type}</span>
+                                </a>
+                              ) : (
+                                <a href={msg.mediaUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <FileOutlined />
+                                  <span>Attachment</span>
+                                </a>
+                              )}
+                            </div>
+                          )}
+                          {/* Text content */}
                           <div style={{ wordBreak: 'break-word', fontSize: 14, lineHeight: 1.5 }}>
-                            {msg.text || `[${msg.type || 'media'}]`}
+                            {msg.text || (!msg.mediaUrl ? `[${msg.type || 'media'}]` : null)}
                           </div>
                           <div
                             style={{
@@ -708,6 +840,58 @@ const WaChatConsolePage = () => {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* File Attachment Preview */}
+            {attachedFile && (
+              <div
+                style={{
+                  padding: '8px 20px',
+                  background: '#fff',
+                  borderTop: '1px solid #e8e8e8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                }}
+              >
+                {attachedPreview ? (
+                  <img
+                    src={attachedPreview}
+                    alt="preview"
+                    style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: 8,
+                      background: '#f0f0f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <FileOutlined style={{ fontSize: 24, color: '#8c8c8c' }} />
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Text ellipsis style={{ display: 'block', fontWeight: 500 }}>
+                    {attachedFile.name}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {(attachedFile.size / 1024).toFixed(1)} KB
+                  </Text>
+                </div>
+                <Tooltip title="Hapus file">
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={clearAttachment}
+                  />
+                </Tooltip>
+              </div>
+            )}
+
             {/* Input Area */}
             <div
               style={{
@@ -720,12 +904,38 @@ const WaChatConsolePage = () => {
               }}
             >
               <Button type="text" icon={<SmileOutlined />} style={{ color: '#8c8c8c' }} />
-              <Button type="text" icon={<PaperClipOutlined />} style={{ color: '#8c8c8c' }} />
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                }}
+              />
+              <Tooltip title="Kirim gambar atau file">
+                <Button
+                  type="text"
+                  icon={<PaperClipOutlined />}
+                  style={{ color: attachedFile ? '#1677ff' : '#8c8c8c' }}
+                  onClick={() => fileInputRef.current?.click()}
+                />
+              </Tooltip>
               <Input
-                placeholder="Type message"
+                placeholder={attachedFile ? 'Tambahkan caption (opsional)...' : 'Ketik pesan...'}
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
-                onKeyDown={handleKeyPress}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (attachedFile) {
+                      handleSendFile();
+                    } else {
+                      handleSend();
+                    }
+                  }
+                }}
                 style={{
                   flex: 1,
                   borderRadius: 20,
@@ -737,9 +947,9 @@ const WaChatConsolePage = () => {
                 type="primary"
                 shape="circle"
                 icon={<SendOutlined />}
-                onClick={handleSend}
+                onClick={attachedFile ? handleSendFile : handleSend}
                 loading={sending}
-                disabled={!messageInput.trim()}
+                disabled={!attachedFile && !messageInput.trim()}
                 size="large"
               />
             </div>

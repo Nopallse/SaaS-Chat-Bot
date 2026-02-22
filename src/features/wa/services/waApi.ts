@@ -262,9 +262,51 @@ export const waApi = {
     return payload?.data || payload;
   },
 
+  // Send image from chat console
+  sendChatImage: async (sessionId: string, to: string, file: File, caption?: string): Promise<{ messageId: string | null; to: string; mediaUrl: string }> => {
+    const formData = new FormData();
+    formData.append('sessionId', sessionId);
+    formData.append('to', to);
+    formData.append('file', file);
+    if (caption) formData.append('caption', caption);
+    const response = await axiosInstance.post('/wa/send-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const payload: any = response.data;
+    return payload?.data || payload;
+  },
+
+  // Send document from chat console
+  sendChatDocument: async (sessionId: string, to: string, file: File, caption?: string): Promise<{ messageId: string | null; to: string; mediaUrl: string }> => {
+    const formData = new FormData();
+    formData.append('sessionId', sessionId);
+    formData.append('to', to);
+    formData.append('file', file);
+    if (caption) formData.append('caption', caption);
+    const response = await axiosInstance.post('/wa/send-document', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const payload: any = response.data;
+    return payload?.data || payload;
+  },
+
   // Mark conversation as read
   markAsRead: async (sessionId: string, jid: string): Promise<{ success: boolean }> => {
     const response = await axiosInstance.post(`/wa/conversations/${sessionId}/${encodeURIComponent(jid)}/mark-as-read`);
+    const payload: any = response.data;
+    return payload?.data || payload;
+  },
+
+  // Check if a phone number is registered on WhatsApp
+  checkNumber: async (sessionId: string, phone: string): Promise<{ exists: boolean; jid: string | null }> => {
+    const response = await axiosInstance.post(`/wa/check/${sessionId}/${encodeURIComponent(phone)}`);
+    const payload: any = response.data;
+    return payload?.data || payload;
+  },
+
+  // Get group member list
+  getGroupMembers: async (sessionId: string, groupJid: string): Promise<{ members: Array<{ id: string; admin?: string | null }> }> => {
+    const response = await axiosInstance.get(`/wa/group/${sessionId}/${encodeURIComponent(groupJid)}/members`);
     const payload: any = response.data;
     return payload?.data || payload;
   },

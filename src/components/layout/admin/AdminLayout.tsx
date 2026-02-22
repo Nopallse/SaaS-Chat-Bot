@@ -7,7 +7,7 @@ import AdminHeader from './AdminHeader';
 const { Content } = Layout;
 
 const AdminLayout = () => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed] = useState(false);
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
