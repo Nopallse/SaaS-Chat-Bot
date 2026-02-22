@@ -14,6 +14,7 @@ import {
   Dropdown,
   Tag,
   Tooltip,
+  Switch,
 } from 'antd';
 import {
   SendOutlined,
@@ -26,6 +27,7 @@ import {
   PlayCircleOutlined,
   FileOutlined,
   DeleteOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import {
   waApi,
@@ -33,6 +35,7 @@ import {
   type WhatsAppMessage,
   type WhatsAppSession,
 } from '../services/waApi';
+import { aiApi, type AiAgent } from '@/features/ai/services/aiApi';
 import { useNotification } from '@/hooks/useNotification';
 import { API_URL } from '@/utils/constants';
 import { io, type Socket } from 'socket.io-client';
@@ -56,6 +59,9 @@ const WaChatConsolePage = () => {
   const [loadingConvos, setLoadingConvos] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sessionAgent, setSessionAgent] = useState<AiAgent | null>(null);
+  const [loadingSessionAgent, setLoadingSessionAgent] = useState(false);
+  const [switchingAiMode, setSwitchingAiMode] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [attachedPreview, setAttachedPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,7 +70,7 @@ const WaChatConsolePage = () => {
   const socketRef = useRef<Socket | null>(null);
   const selectedSessionRef = useRef<string>('');
   const selectedConversationRef = useRef<WhatsAppConversation | null>(null);
-  const { showError } = useNotification();
+  const { showError, showSuccess } = useNotification();
 
   useEffect(() => {
     selectedSessionRef.current = selectedSessionId;
@@ -100,6 +106,10 @@ const WaChatConsolePage = () => {
     if (selectedSessionId) {
       loadConversations();
     }
+  }, [selectedSessionId]);
+
+  useEffect(() => {
+    loadSessionAgent(selectedSessionId);
   }, [selectedSessionId]);
 
   // Filter conversations by search
@@ -257,6 +267,46 @@ const WaChatConsolePage = () => {
 
   const loadConversations = async (silent = false) => {
     await loadConversationsBySession(selectedSessionId, silent);
+  };
+
+  const loadSessionAgent = async (sessionId: string) => {
+    if (!sessionId) {
+      setSessionAgent(null);
+      return;
+    }
+
+    setLoadingSessionAgent(true);
+    try {
+      const agent = await aiApi.getAgent(sessionId);
+      setSessionAgent(agent);
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        setSessionAgent(null);
+      } else {
+        showError('Failed to load AI agent');
+        setSessionAgent(null);
+      }
+    } finally {
+      setLoadingSessionAgent(false);
+    }
+  };
+
+  const handleToggleAiMode = async (checked: boolean) => {
+    if (!sessionAgent) return;
+
+    const nextMode: 'BOT' | 'HUMAN' = checked ? 'BOT' : 'HUMAN';
+    if (sessionAgent.mode === nextMode) return;
+
+    setSwitchingAiMode(true);
+    try {
+      const updated = await aiApi.switchMode(sessionAgent.id, nextMode);
+      setSessionAgent(updated);
+      showSuccess(`AI mode switched to ${updated.mode}`);
+    } catch {
+      showError('Failed to switch AI mode');
+    } finally {
+      setSwitchingAiMode(false);
+    }
   };
 
   const loadMessages = useCallback(
@@ -683,6 +733,24 @@ const WaChatConsolePage = () => {
                 </div>
               </Space>
               <Space>
+                {loadingSessionAgent ? (
+                  <Spin size="small" />
+                ) : sessionAgent ? (
+                  <Space size={6}>
+                    <Tag color={sessionAgent.mode === 'BOT' ? 'blue' : 'default'} icon={<RobotOutlined />}>
+                      AI {sessionAgent.mode}
+                    </Tag>
+                    <Switch
+                      checked={sessionAgent.mode === 'BOT'}
+                      checkedChildren="BOT"
+                      unCheckedChildren="HUMAN"
+                      onChange={handleToggleAiMode}
+                      loading={switchingAiMode}
+                    />
+                  </Space>
+                ) : (
+                  <Tag icon={<RobotOutlined />}>AI OFF</Tag>
+                )}
                 <Button
                   type="text"
                   icon={<ReloadOutlined />}

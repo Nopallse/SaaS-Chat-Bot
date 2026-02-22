@@ -57,11 +57,32 @@ const AiAgentPage = () => {
     try {
       const data = await waApi.getSessions();
       setSessions(data);
+      await fetchAgentsBySessions(data);
     } catch {
       showError('Gagal memuat sessions');
     } finally {
       setFetchingSessions(false);
     }
+  };
+
+  const fetchAgentsBySessions = async (sessionList: WhatsAppSession[]) => {
+    if (sessionList.length === 0) {
+      setAgents([]);
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      sessionList.map((session) => aiApi.getAgent(session.id)),
+    );
+
+    const loadedAgents: AiAgent[] = results.flatMap((result) => {
+      if (result.status === 'fulfilled' && result.value) {
+        return [result.value];
+      }
+      return [];
+    });
+
+    setAgents(loadedAgents);
   };
 
   const handleCreateAgent = async (values: any) => {
@@ -117,7 +138,8 @@ const AiAgentPage = () => {
     }
   };
 
-  const getSessionLabel = (sessionId: string) => {
+  const getSessionLabel = (sessionId?: string) => {
+    if (!sessionId) return '-';
     const session = sessions.find((s) => s.id === sessionId);
     if (!session) return sessionId.slice(0, 12);
     return session.label || sessionId.slice(0, 12);
@@ -171,7 +193,7 @@ const AiAgentPage = () => {
 
   // Get sessions that don't have an agent yet
   const availableSessions = sessions.filter(
-    (s) => !agents.some((a) => a.sessionId === s.id),
+    (s) => !agents.some((a) => a.sessionId && a.sessionId === s.id),
   );
 
   return (
