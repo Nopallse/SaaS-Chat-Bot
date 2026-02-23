@@ -1,4 +1,4 @@
-import { Layout, Menu, Button, Dropdown, Avatar, theme } from 'antd';
+import { Layout, Menu, Button, Dropdown, Avatar } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserOutlined, LogoutOutlined, DashboardOutlined } from '@ant-design/icons';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,7 +9,6 @@ import logoImage from '@/assets/logo.png';
 const { Header } = Layout;
 
 const Navbar = () => {
-  const { token } = theme.useToken();
   const { isAuthenticated, role, user } = useAuth();
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
