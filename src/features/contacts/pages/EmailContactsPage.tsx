@@ -12,6 +12,7 @@ import {
   Statistic,
   Row,
   Col,
+  theme,
 } from 'antd';
 import {
   UploadOutlined,
@@ -29,6 +30,7 @@ const { Title, Text } = Typography;
 const { Dragger } = Upload;
 
 const EmailContactsPage = () => {
+  const { token } = theme.useToken();
   const [isMobile, setIsMobile] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [emailContacts, setEmailContacts] = useState<EmailContact[]>([]);
@@ -320,7 +322,7 @@ const EmailContactsPage = () => {
 
             <Dragger {...uploadProps} style={{ padding: isMobile ? '20px' : '40px' }}>
               <p className="ant-upload-drag-icon">
-                <FileExcelOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+                <FileExcelOutlined style={{ fontSize: 48, color: token.colorPrimary }} />
               </p>
               <p className="ant-upload-text" style={{ fontSize: isMobile ? 14 : 16 }}>
                 Klik atau drag file Excel ke sini
@@ -357,7 +359,7 @@ const EmailContactsPage = () => {
                       <Statistic
                         title="Email Diupdate"
                         value={importResult.summary.emails?.updated || 0}
-                        valueStyle={{ color: '#1890ff' }}
+                        valueStyle={{ color: token.colorPrimary }}
                       />
                     </Col>
                     <Col xs={12} sm={12} md={6}>

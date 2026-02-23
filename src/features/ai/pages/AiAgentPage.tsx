@@ -128,8 +128,23 @@ const AiAgentPage = () => {
   const handleUploadKnowledge = async (agentId: string, file: File) => {
     setUploading(true);
     try {
-      await aiApi.uploadKnowledge(agentId, file);
-      showSuccess(`File "${file.name}" berhasil diupload dan sedang diproses`);
+      const result = await aiApi.uploadKnowledge(agentId, file);
+      if (result.success) {
+        showSuccess(`File "${file.name}" berhasil diupload dan sedang diproses`);
+        
+        // Refresh agent data to get updated knowledge files
+        const agent = agents.find(a => a.id === agentId);
+        if (agent?.sessionId) {
+          const updatedAgent = await aiApi.getAgent(agent.sessionId);
+          if (updatedAgent) {
+            setAgents((prev) =>
+              prev.map((a) => (a.id === agentId ? updatedAgent : a)),
+            );
+          }
+        }
+      } else {
+        showError('Upload gagal, silakan coba lagi');
+      }
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Gagal mengupload file';
       showError(msg);

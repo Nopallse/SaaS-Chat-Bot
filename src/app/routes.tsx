@@ -19,10 +19,9 @@ const WaSessionPage = lazy(() => import('@/features/wa/pages/WaSessionPage'));
 const WaBroadcastPage = lazy(() => import('@/features/wa/pages/WaBroadcastPage'));
 const WaGroupPage = lazy(() => import('@/features/wa/pages/WaGroupPage'));
 const WaChatConsolePage = lazy(() => import('@/features/wa/pages/WaChatConsolePage'));
+const WaPage = lazy(() => import('@/features/wa/pages/WaPage'));
 const WaContactsPage = lazy(() => import('@/features/contacts/pages/WaContactsPage'));
-const EmailConnectPage = lazy(() => import('@/features/email/pages/EmailConnectPage'));
-const EmailBroadcastPage = lazy(() => import('@/features/email/pages/EmailBroadcastPage'));
-const EmailContactsPage = lazy(() => import('@/features/contacts/pages/EmailContactsPage'));
+const EmailPage = lazy(() => import('@/features/email/pages/EmailPage'));
 const AiAgentPage = lazy(() => import('@/features/ai/pages/AiAgentPage'));
 
 const LoadingFallback = () => (
@@ -54,14 +53,13 @@ export const AppRoutes = () => {
           >
             <Route path="/user/dashboard" element={<UserDashboardPage />} />
             <Route path="/user/profile" element={<UserProfilePage />} />
+            <Route path="/wa" element={<WaPage />} />
             <Route path="/wa/session" element={<WaSessionPage />} />
             <Route path="/wa/broadcast" element={<WaBroadcastPage />} />
             <Route path="/wa/group" element={<WaGroupPage />} />
             <Route path="/wa/chat" element={<WaChatConsolePage />} />
             <Route path="/wa/contacts" element={<WaContactsPage />} />
-            <Route path="/email/connect" element={<EmailConnectPage />} />
-            <Route path="/email/broadcast" element={<EmailBroadcastPage />} />
-            <Route path="/email/contacts" element={<EmailContactsPage />} />
+            <Route path="/email" element={<EmailPage />} />
             <Route path="/ai/agent" element={<AiAgentPage />} />
           </Route>
 

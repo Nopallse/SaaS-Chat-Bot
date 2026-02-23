@@ -136,7 +136,7 @@ const EmailInput = ({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Space>
-              <MailOutlined style={{ color: '#1890ff' }} />
+              <MailOutlined style={{ color: '#0c73e0' }} />
               <Text strong style={{ fontSize: 13 }}>
                 {emails.length} Email Dipilih
               </Text>
@@ -182,7 +182,7 @@ const EmailInput = ({
                   border: '1px solid #d9d9d9',
                 }}
               >
-                <code style={{ fontSize: '13px', fontFamily: 'monospace', color: '#1890ff' }}>
+                <code style={{ fontSize: '13px', fontFamily: 'monospace', color: '#0c73e0' }}>
                   {email}
                 </code>
               </Tag>

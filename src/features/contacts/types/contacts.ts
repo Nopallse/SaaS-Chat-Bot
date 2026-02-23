@@ -11,7 +11,7 @@ export interface WhatsAppContact {
   id: string;
   phone: string;
   name?: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: 'ACTIVE' | 'INACTIVE' | 'UNKNOWN';
   source?: string;
   createdAt: string;
   updatedAt: string;

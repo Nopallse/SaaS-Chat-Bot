@@ -6,6 +6,20 @@ import type {
   ImportResponse,
 } from '../types/contacts';
 
+export interface CreateWhatsAppContactRequest {
+  phone: string;
+  name?: string;
+  status?: 'ACTIVE' | 'INACTIVE' | 'UNKNOWN';
+  source?: string;
+}
+
+export interface UpdateWhatsAppContactRequest {
+  phone?: string;
+  name?: string;
+  status?: 'ACTIVE' | 'INACTIVE' | 'UNKNOWN';
+  source?: string;
+}
+
 export type { EmailContact, WhatsAppContact, ContactsResponse, ImportResponse };
 
 export const contactsApi = {
@@ -37,6 +51,29 @@ export const contactsApi = {
     const payload: any = response.data;
     const data = payload?.data || payload;
     return data;
+  },
+
+  async createWhatsAppContact(
+    payload: CreateWhatsAppContactRequest
+  ): Promise<WhatsAppContact> {
+    const response = await axiosInstance.post('/contacts/whatsapp', payload);
+    const resPayload: any = response.data;
+    return resPayload?.data || resPayload;
+  },
+
+  async updateWhatsAppContact(
+    id: string,
+    payload: UpdateWhatsAppContactRequest
+  ): Promise<WhatsAppContact> {
+    const response = await axiosInstance.patch(`/contacts/whatsapp/${id}`, payload);
+    const resPayload: any = response.data;
+    return resPayload?.data || resPayload;
+  },
+
+  async deleteWhatsAppContact(id: string): Promise<{ id: string }> {
+    const response = await axiosInstance.delete(`/contacts/whatsapp/${id}`);
+    const resPayload: any = response.data;
+    return resPayload?.data || resPayload;
   },
 };
 

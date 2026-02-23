@@ -1,7 +1,6 @@
-import { Layout, Menu, Avatar, Space, Typography } from 'antd';
+import { Layout, Menu, Avatar, Space } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  DashboardOutlined,
   UserOutlined,
   MessageOutlined,
   MailOutlined,
@@ -15,7 +14,6 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
 
 const { Sider } = Layout;
-const { Text } = Typography;
 
 const Sidebar = () => {
   const { user, role } = useAuth();
@@ -30,55 +28,19 @@ const Sidebar = () => {
 
   const menuItems = [
     {
-      key: '/user/dashboard',
-      icon: <DashboardOutlined />,
-      label: <Link to="/user/dashboard">Dashboard</Link>,
-    },
-    {
-      key: 'whatsapp',
+      key: '/wa/chat',
       icon: <MessageOutlined />,
-      label: 'WhatsApp',
-      children: [
-        {
-          key: '/wa/chat',
-          label: <Link to="/wa/chat">Chat Console</Link>,
-        },
-        {
-          key: '/wa/session',
-          label: <Link to="/wa/session">Sessions</Link>,
-        },
-        {
-          key: '/wa/broadcast',
-          label: <Link to="/wa/broadcast">Broadcast</Link>,
-        },
-        {
-          key: '/wa/group',
-          label: <Link to="/wa/group">Groups</Link>,
-        },
-        {
-          key: '/wa/contacts',
-          label: <Link to="/wa/contacts">Contacts</Link>,
-        },
-      ],
+      label: <Link to="/wa/chat">Chat Console</Link>,
     },
     {
-      key: 'email',
+      key: '/wa',
+      icon: <ApiOutlined />,
+      label: <Link to="/wa">WhatsApp</Link>,
+    },
+    {
+      key: '/email',
       icon: <MailOutlined />,
-      label: 'Email',
-      children: [
-        {
-          key: '/email/connect',
-          label: <Link to="/email/connect">Connect Gmail</Link>,
-        },
-        {
-          key: '/email/broadcast',
-          label: <Link to="/email/broadcast">Broadcast</Link>,
-        },
-        {
-          key: '/email/contacts',
-          label: <Link to="/email/contacts">Contacts</Link>,
-        },
-      ],
+      label: <Link to="/email">Email</Link>,
     },
     {
       key: 'ai',
@@ -129,20 +91,14 @@ const Sidebar = () => {
       }}
       theme="light"
     >
-      <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0' }}>
-        <Space align="center" style={{ width: '100%', justifyContent: 'center' }}>
-          <MessageOutlined style={{ fontSize: 24, color: '#1677ff' }} />
-          <MailOutlined style={{ fontSize: 24, color: '#1677ff' }} />
-          <Text strong style={{ fontSize: 18, color: '#1677ff' }}>
-            Blastify
-          </Text>
-        </Space>
+      <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <img src="/logo.png" alt="Blastify" style={{ height: '40px', maxWidth: '100%', objectFit: 'contain' }} />
       </div>
 
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
-        defaultOpenKeys={['whatsapp', 'email', 'ai']}
+        defaultOpenKeys={['ai']}
         items={menuItems}
         style={{ borderRight: 0, height: 'calc(100vh - 180px)', overflow: 'auto' }}
       />

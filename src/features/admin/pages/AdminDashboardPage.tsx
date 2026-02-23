@@ -202,7 +202,7 @@ const AdminDashboardPage = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#1890ff'
+                  color: '#0c73e0'
                 }}>
                   {card.icon}
                 </div>
@@ -383,8 +383,8 @@ const AdminDashboardPage = () => {
                   style={{ 
                     marginTop: 16,
                     borderRadius: 8,
-                    borderColor: '#1890ff',
-                    color: '#1890ff'
+                    borderColor: '#0c73e0',
+                    color: '#0c73e0'
                   }}
                 >
                   Refresh

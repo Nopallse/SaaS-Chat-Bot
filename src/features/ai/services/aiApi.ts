@@ -68,6 +68,7 @@ export const aiApi = {
   },
 
   // Upload knowledge file (PDF)
+  // Note: After upload, call getAgent to refresh agent data with updated knowledge files
   uploadKnowledge: async (agentId: string, file: File): Promise<{ success: boolean }> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -75,6 +76,12 @@ export const aiApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     const payload: any = response.data;
-    return payload?.data || payload;
+    const data = payload?.data || payload;
+    return { success: data?.success ?? true };
   },
+
+  // TODO: Endpoints not yet implemented in BE
+  // - PATCH /ai/:id - updateAgent (to edit systemPrompt, fallbackReply, temperature, maxTokens)
+  // - DELETE /ai/:agentId/knowledge/:fileId - deleteKnowledgeFile
+  // - GET /ai/:agentId/knowledge - listKnowledgeFiles (agent data likely includes this)
 };

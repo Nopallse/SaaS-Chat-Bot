@@ -4,7 +4,7 @@ import { CheckCircleOutlined, GoogleOutlined, LinkOutlined } from '@ant-design/i
 import { useAuth } from '@/hooks/useAuth';
 import { emailApi } from '@/features/email/services/emailApi';
 
-const EmailConnectPage = () => {
+const ConnectTab = () => {
   const { isAuthenticated } = useAuth();
   const { token } = theme.useToken();
   const [loading, setLoading] = useState(false);
@@ -18,10 +18,9 @@ const EmailConnectPage = () => {
     }
     setLoading(true);
     try {
-  const response = await emailApi.getConnectUrl();
-  const url = typeof response === 'string' ? response : response?.url;
+      const response = await emailApi.getConnectUrl();
+      const url = typeof response === 'string' ? response : response?.url;
       if (url) {
-        // redirect to Google OAuth URL
         window.location.href = url;
       } else {
         message.error('No connect URL returned from server');
@@ -68,7 +67,7 @@ const EmailConnectPage = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', maxWidth: 800, margin: '0 auto' }}>
+    <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <Card title="Connect Gmail Account">
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
           <Alert
@@ -131,5 +130,4 @@ const EmailConnectPage = () => {
   );
 };
 
-export default EmailConnectPage;
-
+export default ConnectTab;

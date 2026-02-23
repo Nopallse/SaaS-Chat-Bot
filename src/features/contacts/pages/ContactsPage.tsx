@@ -444,7 +444,7 @@ const ContactsPage = () => {
 
             <Dragger {...uploadProps} style={{ padding: isMobile ? '20px' : '40px' }}>
               <p className="ant-upload-drag-icon">
-                <FileExcelOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+                <FileExcelOutlined style={{ fontSize: 48, color: '#0c73e0' }} />
               </p>
               <p className="ant-upload-text" style={{ fontSize: isMobile ? 14 : 16 }}>
                 Klik atau drag file Excel ke sini
@@ -481,7 +481,7 @@ const ContactsPage = () => {
                       <Statistic
                         title="Email Diupdate"
                         value={importResult.summary.emails?.updated || 0}
-                        valueStyle={{ color: '#1890ff' }}
+                        valueStyle={{ color: '#0c73e0' }}
                       />
                     </Col>
                     <Col xs={12} sm={12} md={6}>
@@ -502,7 +502,7 @@ const ContactsPage = () => {
                       <Statistic
                         title="WA Diupdate"
                         value={importResult.summary.phones?.updated || 0}
-                        valueStyle={{ color: '#1890ff' }}
+                        valueStyle={{ color: '#0c73e0' }}
                       />
                     </Col>
                     <Col xs={12} sm={12} md={6}>

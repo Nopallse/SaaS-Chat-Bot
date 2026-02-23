@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { utils as xlsxUtils, writeFile } from 'xlsx';
 import {
   Card,
   Button,
@@ -12,39 +13,33 @@ import {
   Statistic,
   Row,
   Col,
+  theme,
 } from 'antd';
 import {
   UploadOutlined,
   ReloadOutlined,
-  MessageOutlined,
+  MailOutlined,
   FileExcelOutlined,
   CheckCircleOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
-import { contactsApi } from '../services/contactsApi';
-import type { WhatsAppContact, ImportResponse } from '../types/contacts';
+import { contactsApi } from '@/features/contacts/services/contactsApi';
+import type { EmailContact, ImportResponse } from '@/features/contacts/types/contacts';
 import { useNotification } from '@/hooks/useNotification';
 
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
 
-const WaContactsPage = () => {
-  const [isMobile, setIsMobile] = useState(false);
+const ContactsTab = () => {
+  const { token } = theme.useToken();
   const [fetching, setFetching] = useState(true);
-  const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
+  const [emailContacts, setEmailContacts] = useState<EmailContact[]>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResponse | null>(null);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const { showSuccess, showError } = useNotification();
-
-  // Check mobile screen size
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   useEffect(() => {
     fetchContacts();
@@ -54,11 +49,11 @@ const WaContactsPage = () => {
     setFetching(true);
     try {
       const data = await contactsApi.getContacts();
-      setWhatsappContacts(data?.whatsapp || []);
+      setEmailContacts(data?.emails || []);
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Gagal memuat contacts';
       showError(msg);
-      setWhatsappContacts([]);
+      setEmailContacts([]);
     } finally {
       setFetching(false);
     }
@@ -72,7 +67,7 @@ const WaContactsPage = () => {
 
     const fileItem = fileList[0];
     let file: File | undefined;
-    
+
     if (fileItem.originFileObj instanceof File) {
       file = fileItem.originFileObj;
     } else if (fileItem instanceof File) {
@@ -83,7 +78,7 @@ const WaContactsPage = () => {
         file = rawFile;
       }
     }
-    
+
     if (!file || !(file instanceof File)) {
       showError('File tidak valid. Pastikan file adalah file Excel (.xlsx atau .xls)');
       return;
@@ -91,8 +86,8 @@ const WaContactsPage = () => {
 
     const validExtensions = ['.xlsx', '.xls'];
     const fileName = file.name.toLowerCase();
-    const isValidType = validExtensions.some(ext => fileName.endsWith(ext));
-    
+    const isValidType = validExtensions.some((ext) => fileName.endsWith(ext));
+
     if (!isValidType) {
       showError('Format file tidak didukung. Hanya file .xlsx atau .xls yang didukung');
       return;
@@ -125,6 +120,25 @@ const WaContactsPage = () => {
     setImportResult(null);
   };
 
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        email: 'example@email.com',
+        name: 'John Doe',
+      },
+      {
+        email: 'another@email.com',
+        name: 'Jane Smith',
+      },
+    ];
+
+    const ws = xlsxUtils.json_to_sheet(templateData);
+    const wb = xlsxUtils.book_new();
+    xlsxUtils.book_append_sheet(wb, ws, 'Email Contacts');
+    writeFile(wb, 'email_contacts_template.xlsx');
+    showSuccess('Template berhasil diunduh!');
+  };
+
   const uploadProps: UploadProps = {
     name: 'file',
     accept: '.xlsx,.xls',
@@ -132,8 +146,8 @@ const WaContactsPage = () => {
     beforeUpload: (file) => {
       const validExtensions = ['.xlsx', '.xls'];
       const fileName = file.name.toLowerCase();
-      const isValidType = validExtensions.some(ext => fileName.endsWith(ext));
-      
+      const isValidType = validExtensions.some((ext) => fileName.endsWith(ext));
+
       if (!isValidType) {
         showError('Format file tidak didukung. Hanya file .xlsx atau .xls yang didukung');
         return Upload.LIST_IGNORE;
@@ -160,19 +174,18 @@ const WaContactsPage = () => {
     maxCount: 1,
   };
 
-  const whatsappColumns = [
+  const emailColumns = [
     {
-      title: 'Phone',
-      dataIndex: 'phone',
-      key: 'phone',
-      render: (phone: string) => <code style={{ fontSize: isMobile ? '11px' : '12px' }}>{phone}</code>,
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      render: (email: string) => <code style={{ fontSize: '12px' }}>{email}</code>,
     },
     {
       title: 'Nama',
       dataIndex: 'name',
       key: 'name',
       render: (name?: string) => name || <Text type="secondary">-</Text>,
-      responsive: ['md'] as any,
     },
     {
       title: 'Status',
@@ -181,89 +194,63 @@ const WaContactsPage = () => {
       render: (status: string) => {
         const colorMap: Record<string, string> = {
           ACTIVE: 'success',
-          INACTIVE: 'default',
+          BOUNCED: 'error',
+          UNSUBSCRIBED: 'warning',
         };
         return <Tag color={colorMap[status] || 'default'}>{status}</Tag>;
       },
-    },
-    {
-      title: 'Source',
-      dataIndex: 'source',
-      key: 'source',
-      render: (source?: string) => source || <Text type="secondary">-</Text>,
-      responsive: ['md'] as any,
     },
     {
       title: 'Dibuat',
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => new Date(date).toLocaleDateString('id-ID'),
-      responsive: ['md'] as any,
     },
   ];
 
   const stats = {
-    totalWhatsApp: whatsappContacts?.length || 0,
-    activeWhatsApp: whatsappContacts?.filter((c) => c.status === 'ACTIVE').length || 0,
+    totalEmails: emailContacts?.length || 0,
+    activeEmails: emailContacts?.filter((c) => c.status === 'ACTIVE').length || 0,
   };
 
   return (
-    <div style={{ padding: isMobile ? '12px' : '24px', minHeight: '100vh', background: isMobile ? '#f5f5f5' : 'transparent' }}>
-      <div style={{ marginBottom: isMobile ? 16 : 24 }}>
-        <Title level={2} style={{ fontSize: isMobile ? 20 : 24, margin: 0 }}>
-          WhatsApp Contacts
-        </Title>
-        {isMobile && (
-          <div style={{ marginTop: 8, fontSize: 14, color: '#666' }}>
-            Kelola kontak WhatsApp Anda
-          </div>
-        )}
-      </div>
-
+    <div>
       {/* Statistics */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Total WhatsApp"
-              value={stats.totalWhatsApp}
-              prefix={<MessageOutlined />}
-              valueStyle={{ fontSize: isMobile ? 20 : 24 }}
+              title="Total Email"
+              value={stats.totalEmails}
+              prefix={<MailOutlined />}
             />
           </Card>
         </Col>
         <Col xs={12} sm={12} md={6}>
           <Card>
             <Statistic
-              title="WA Aktif"
-              value={stats.activeWhatsApp}
+              title="Email Aktif"
+              value={stats.activeEmails}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#3f8600', fontSize: isMobile ? 20 : 24 }}
+              valueStyle={{ color: '#3f8600' }}
             />
           </Card>
         </Col>
       </Row>
 
       {/* Action Buttons */}
-      <Space direction={isMobile ? 'vertical' : 'horizontal'} size={isMobile ? 12 : 16} style={{ width: isMobile ? '100%' : 'auto', marginBottom: 16 }}>
+      <Space size={16} style={{ marginBottom: 16 }}>
         <Button
           type="primary"
           icon={<UploadOutlined />}
           onClick={() => setImportModalVisible(true)}
-          size={isMobile ? 'large' : 'middle'}
-          block={isMobile}
-          style={isMobile ? { height: 48 } : {}}
         >
           Import dari Excel
         </Button>
-        <Button
-          icon={<ReloadOutlined />}
-          onClick={fetchContacts}
-          loading={fetching}
-          size={isMobile ? 'large' : 'middle'}
-          block={isMobile}
-          style={isMobile ? { height: 48 } : {}}
-        >
+        <Button icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>
+          Download Template
+        </Button>
+        <Button icon={<ReloadOutlined />} onClick={fetchContacts} loading={fetching}>
           Refresh
         </Button>
       </Space>
@@ -271,33 +258,32 @@ const WaContactsPage = () => {
       {/* Contacts Table */}
       <Card style={{ borderRadius: 8 }}>
         <Table
-          columns={whatsappColumns}
-          dataSource={whatsappContacts || []}
+          columns={emailColumns}
+          dataSource={emailContacts || []}
           loading={fetching}
           rowKey="id"
           pagination={{
-            pageSize: isMobile ? 5 : 10,
-            showSizeChanger: !isMobile,
-            showTotal: (total) => `Total ${total} WhatsApp contacts`,
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `Total ${total} email contacts`,
           }}
-          scroll={{ x: isMobile ? 800 : 'max-content' }}
-          locale={{ emptyText: 'Belum ada WhatsApp contact. Import dari Excel untuk menambahkan.' }}
-          size={isMobile ? 'small' : 'middle'}
+          scroll={{ x: 'max-content' }}
+          locale={{ emptyText: 'Belum ada email contact. Import dari Excel untuk menambahkan.' }}
         />
       </Card>
 
       {/* Import Modal */}
       <Modal
-        title="Import Kontak WhatsApp dari Excel"
+        title="Import Kontak Email dari Excel"
         open={importModalVisible}
         onCancel={handleImportModalClose}
         onOk={handleImport}
         okText="Import"
         cancelText="Batal"
         confirmLoading={importing}
-        width={isMobile ? '95%' : 600}
+        width={600}
         styles={{
-          body: { padding: isMobile ? '20px 16px' : '24px' },
+          body: { padding: '24px' },
         }}
       >
         {!importResult ? (
@@ -309,7 +295,7 @@ const WaContactsPage = () => {
                   <div style={{ marginBottom: 8 }}>File Excel harus memiliki header di baris pertama:</div>
                   <ul style={{ margin: 0, paddingLeft: 20 }}>
                     <li>
-                      <strong>phone/no_hp/wa</strong> - nomor WhatsApp (wajib)
+                      <strong>email</strong> - alamat email (wajib)
                     </li>
                     <li>
                       <strong>name/nama</strong> - nama kontak (opsional)
@@ -324,16 +310,12 @@ const WaContactsPage = () => {
               showIcon
             />
 
-            <Dragger {...uploadProps} style={{ padding: isMobile ? '20px' : '40px' }}>
+            <Dragger {...uploadProps} style={{ padding: '40px' }}>
               <p className="ant-upload-drag-icon">
-                <FileExcelOutlined style={{ fontSize: 48, color: '#0c73e0' }} />
+                <FileExcelOutlined style={{ fontSize: 48, color: token.colorPrimary }} />
               </p>
-              <p className="ant-upload-text" style={{ fontSize: isMobile ? 14 : 16 }}>
-                Klik atau drag file Excel ke sini
-              </p>
-              <p className="ant-upload-hint" style={{ fontSize: isMobile ? 12 : 14 }}>
-                Hanya file .xlsx atau .xls yang didukung
-              </p>
+              <p className="ant-upload-text">Klik atau drag file Excel ke sini</p>
+              <p className="ant-upload-hint">Hanya file .xlsx atau .xls yang didukung</p>
             </Dragger>
           </Space>
         ) : (
@@ -354,22 +336,22 @@ const WaContactsPage = () => {
                     </Col>
                     <Col xs={12} sm={12} md={6}>
                       <Statistic
-                        title="WA Dibuat"
-                        value={importResult.summary.phones?.created || 0}
+                        title="Email Dibuat"
+                        value={importResult.summary.emails?.created || 0}
                         valueStyle={{ color: '#3f8600' }}
                       />
                     </Col>
                     <Col xs={12} sm={12} md={6}>
                       <Statistic
-                        title="WA Diupdate"
-                        value={importResult.summary.phones?.updated || 0}
-                        valueStyle={{ color: '#0c73e0' }}
+                        title="Email Diupdate"
+                        value={importResult.summary.emails?.updated || 0}
+                        valueStyle={{ color: token.colorPrimary }}
                       />
                     </Col>
                     <Col xs={12} sm={12} md={6}>
                       <Statistic
-                        title="WA Dilewati"
-                        value={importResult.summary.phones?.skipped || 0}
+                        title="Email Dilewati"
+                        value={importResult.summary.emails?.skipped || 0}
                         valueStyle={{ color: '#cf1322' }}
                       />
                     </Col>
@@ -391,7 +373,7 @@ const WaContactsPage = () => {
               </>
             )}
 
-            <Button type="primary" block onClick={handleImportModalClose} size={isMobile ? 'large' : 'middle'}>
+            <Button type="primary" block onClick={handleImportModalClose}>
               Tutup
             </Button>
           </Space>
@@ -401,5 +383,4 @@ const WaContactsPage = () => {
   );
 };
 
-export default WaContactsPage;
-
+export default ContactsTab;

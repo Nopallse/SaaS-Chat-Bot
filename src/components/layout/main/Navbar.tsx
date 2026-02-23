@@ -1,6 +1,6 @@
-import { Layout, Menu, Button, Dropdown, Avatar, Space } from 'antd';
+import { Layout, Menu, Button, Dropdown, Avatar, theme } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserOutlined, LogoutOutlined, DashboardOutlined, HomeOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, DashboardOutlined } from '@ant-design/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/authStore';
 import type { MenuProps } from 'antd';
@@ -9,6 +9,7 @@ import logoImage from '@/assets/logo.png';
 const { Header } = Layout;
 
 const Navbar = () => {
+  const { token } = theme.useToken();
   const { isAuthenticated, role, user } = useAuth();
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const Navbar = () => {
     logout();
     navigate('/login');
   };
+
+  const menuLinkStyle = { color: '#1F1F1F' };
 
   const userMenuItems: MenuProps['items'] = [
     {
@@ -34,25 +37,20 @@ const Navbar = () => {
 
   const baseMenu: MenuProps['items'] = [
     {
-      key: 'home',
-      icon: <HomeOutlined />,
-      label: <Link to="/">Home</Link>,
-    },
-    {
       key: 'features',
-      label: <Link to="/#features">Features</Link>,
+      label: <Link to="/#features" style={menuLinkStyle}>Features</Link>,
     },
     {
       key: 'how',
-      label: <Link to="/#how-it-works">How It Works</Link>,
+      label: <Link to="/#how-it-works" style={menuLinkStyle}>How It Works</Link>,
+    },
+    {
+      key: 'solutions',
+      label: <Link to="/#solutions" style={menuLinkStyle}>Solutions</Link>,
     },
     {
       key: 'pricing',
-      label: <Link to="/#pricing">Pricing</Link>,
-    },
-    {
-      key: 'testimonials',
-      label: <Link to="/#testimonials">Testimonials</Link>,
+      label: <Link to="/#pricing" style={menuLinkStyle}>Pricing</Link>,
     },
   ];
 
@@ -62,7 +60,7 @@ const Navbar = () => {
         {
           key: 'dashboard',
           icon: <DashboardOutlined />,
-          label: <Link to={role === 'admin' ? '/admin/dashboard' : '/user/dashboard'}>Dashboard</Link>,
+          label: <Link to={role === 'admin' ? '/admin/dashboard' : '/user/dashboard'} style={menuLinkStyle}>Dashboard</Link>,
         },
       ]
     : baseMenu;
@@ -70,44 +68,88 @@ const Navbar = () => {
   return (
     <Header
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: 'rgba(255,255,255,0.85)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid #f0f0f0',
+        background: 'transparent',
         position: 'sticky',
         top: 0,
         zIndex: 100,
+        height: 'auto',
+        lineHeight: 'normal',
+        padding: '16px 24px',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1, gap: 16 }}>
-        <img src={logoImage} alt="Logo" style={{ height: 32, display: 'block' }} />
-        <Menu
-          mode="horizontal"
-          items={menuItems}
-          style={{ flex: 1, minWidth: 0, background: 'transparent', borderBottom: 'none', alignItems: 'center', display: 'flex' }}
-        />
-      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', columnGap: 24 }}>
+        <Link to="/">
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 999,
+              padding: '8px 14px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              boxShadow: '0 4px 12px rgba(23, 43, 77, 0.12)',
+            }}
+          >
+            <img src={logoImage} alt="Logo" style={{ height: 44, display: 'block' }} />
+          </div>
+        </Link>
 
-      <div>
-        {isAuthenticated ? (
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <Avatar icon={<UserOutlined />} src={user?.avatar} />
-              <span>{user?.name}</span>
-            </div>
-          </Dropdown>
-        ) : (
-          <Space>
+        <div style={{ display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+          <div
+            style={{
+              width: 'fit-content',
+              maxWidth: '100%',
+              padding: '14px 28px',
+              borderRadius: 999,
+              background: '#fff',
+              boxShadow: '0 8px 20px rgba(23, 43, 77, 0.16)',
+            }}
+          >
+            <Menu
+              mode="horizontal"
+              items={menuItems}
+              disabledOverflow
+              selectable={false}
+              style={{
+                justifyContent: 'center',
+                background: 'transparent',
+                borderBottom: 'none',
+                color: '#1F1F1F',
+                fontSize: 18,
+                fontWeight: 600,
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {isAuthenticated ? (
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <Avatar icon={<UserOutlined />} src={user?.avatar} />
+                <span>{user?.name}</span>
+              </div>
+            </Dropdown>
+          ) : (
             <Link to="/login">
-              <Button type="default">Login</Button>
+              <Button
+                type="primary"
+                size="large"
+                style={{
+                  borderRadius: 999,
+                  paddingInline: 36,
+                  height: 50,
+                  fontSize: 20,
+                  fontWeight: 500,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #1f7be7 0%, #0b6edb 100%)',
+                  boxShadow: '0 8px 18px rgba(15, 111, 219, 0.35)',
+                }}
+              >
+                Sign In
+              </Button>
             </Link>
-            <Link to="/register">
-              <Button type="primary">Start Free Trial</Button>
-            </Link>
-          </Space>
-        )}
+          )}
+        </div>
       </div>
     </Header>
   );

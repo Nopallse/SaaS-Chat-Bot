@@ -129,7 +129,7 @@ const PhoneNumberInput = ({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Space>
-              <PhoneOutlined style={{ color: '#1890ff' }} />
+              <PhoneOutlined style={{ color: '#0c73e0' }} />
               <Text strong style={{ fontSize: 13 }}>
                 {phones.length} Nomor Dipilih
               </Text>
@@ -175,7 +175,7 @@ const PhoneNumberInput = ({
                   border: '1px solid #d9d9d9',
                 }}
               >
-                <code style={{ fontSize: '13px', fontFamily: 'monospace', color: '#1890ff' }}>
+                <code style={{ fontSize: '13px', fontFamily: 'monospace', color: '#0c73e0' }}>
                   {phone}
                 </code>
               </Tag>

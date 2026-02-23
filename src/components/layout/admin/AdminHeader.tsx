@@ -65,7 +65,7 @@ const AdminHeader = () => {
           <Avatar 
             size={40} 
             src={user?.avatar}
-            style={{ backgroundColor: '#1890ff' }}
+            style={{ backgroundColor: '#0c73e0' }}
           >
             {user?.name?.[0]?.toUpperCase() || 'A'}
           </Avatar>
