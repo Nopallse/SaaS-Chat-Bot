@@ -70,7 +70,7 @@ export const AppRoutes = () => {
             }
           >
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-            <Route path="/admin/users" element={<ManageUsersPage />} />
+            <Route path="/admin/accounts" element={<ManageUsersPage />} />
           </Route>
 
           {/* 404 */}
