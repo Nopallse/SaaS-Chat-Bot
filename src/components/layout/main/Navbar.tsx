@@ -59,7 +59,7 @@ const Navbar = () => {
         {
           key: 'dashboard',
           icon: <DashboardOutlined />,
-          label: <Link to={role === 'admin' ? '/admin/dashboard' : '/user/dashboard'} style={menuLinkStyle}>Dashboard</Link>,
+          label: <Link to={role === 'admin' ? '/admin/dashboard' : '/wa/chat'} style={menuLinkStyle}>Dashboard</Link>,
         },
       ]
     : baseMenu;

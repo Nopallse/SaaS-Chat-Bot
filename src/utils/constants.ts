@@ -6,7 +6,6 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   AUTH_CALLBACK: '/auth/callback',
-  USER_DASHBOARD: '/user/dashboard',
   USER_PROFILE: '/user/profile',
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_USERS: '/admin/users',

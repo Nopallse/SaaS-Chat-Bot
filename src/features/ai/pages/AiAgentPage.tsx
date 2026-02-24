@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Form,
   Input,
+  InputNumber,
   Button,
   Select,
   Space,
@@ -16,6 +17,10 @@ import {
   Tooltip,
   Modal,
   Alert,
+  Popconfirm,
+  Slider,
+  Divider,
+  Descriptions,
 } from 'antd';
 import {
   RobotOutlined,
@@ -28,23 +33,43 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   InfoCircleOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PoweroffOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import { waApi, type WhatsAppSession } from '@/features/wa/services/waApi';
-import { aiApi, type AiAgent } from '../services/aiApi';
+import { aiApi, type AiAgent, type AiKnowledgeFile } from '../services/aiApi';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotification } from '@/hooks/useNotification';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
+const { TextArea } = Input;
+
+const MODEL_OPTIONS = [
+  { label: 'GPT-4o Mini', value: 'gpt-4o-mini' },
+  { label: 'GPT-4o', value: 'gpt-4o' },
+  { label: 'GPT-4 Turbo', value: 'gpt-4-turbo' },
+  { label: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
+  { label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash' },
+];
 
 const AiAgentPage = () => {
   const [sessions, setSessions] = useState<WhatsAppSession[]>([]);
   const [agents, setAgents] = useState<AiAgent[]>([]);
   const [creating, setCreating] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<string | null>(null);
   const [fetchingSessions, setFetchingSessions] = useState(true);
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<AiAgent | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [knowledgeMap, setKnowledgeMap] = useState<Record<string, AiKnowledgeFile[]>>({});
+  const [loadingKnowledge, setLoadingKnowledge] = useState<Record<string, boolean>>({});
+
+  const [createForm] = Form.useForm();
+  const [editForm] = Form.useForm();
   const { user } = useAuth();
   const { showSuccess, showError } = useNotification();
 
@@ -83,8 +108,26 @@ const AiAgentPage = () => {
     });
 
     setAgents(loadedAgents);
+
+    // Fetch knowledge for each agent
+    loadedAgents.forEach((agent) => {
+      fetchKnowledge(agent.id);
+    });
   };
 
+  const fetchKnowledge = useCallback(async (agentId: string) => {
+    setLoadingKnowledge((prev) => ({ ...prev, [agentId]: true }));
+    try {
+      const files = await aiApi.getKnowledge(agentId);
+      setKnowledgeMap((prev) => ({ ...prev, [agentId]: files }));
+    } catch {
+      // silent fail, knowledge might be in agent data
+    } finally {
+      setLoadingKnowledge((prev) => ({ ...prev, [agentId]: false }));
+    }
+  }, []);
+
+  // ---- CREATE ----
   const handleCreateAgent = async (values: any) => {
     if (!user?.id) {
       showError('User tidak ditemukan');
@@ -100,9 +143,10 @@ const AiAgentPage = () => {
         isEnabled: values.isEnabled ?? true,
       });
       setAgents((prev) => [...prev, agent]);
+      fetchKnowledge(agent.id);
       showSuccess(`Agent "${agent.name}" berhasil dibuat!`);
       setCreateModalVisible(false);
-      form.resetFields();
+      createForm.resetFields();
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Gagal membuat agent';
       showError(msg);
@@ -111,6 +155,59 @@ const AiAgentPage = () => {
     }
   };
 
+  // ---- EDIT / UPDATE ----
+  const openEditModal = (agent: AiAgent) => {
+    setEditingAgent(agent);
+    editForm.setFieldsValue({
+      name: agent.name,
+      model: agent.model,
+      temperature: agent.temperature,
+      maxTokens: agent.maxTokens,
+      systemPrompt: agent.systemPrompt || '',
+      fallbackReply: agent.fallbackReply || '',
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleUpdateAgent = async (values: any) => {
+    if (!editingAgent) return;
+    setSaving(true);
+    try {
+      const updated = await aiApi.updateAgent(editingAgent.id, {
+        name: values.name,
+        model: values.model,
+        temperature: values.temperature,
+        maxTokens: values.maxTokens,
+        systemPrompt: values.systemPrompt || null,
+        fallbackReply: values.fallbackReply || null,
+      });
+      setAgents((prev) => prev.map((a) => (a.id === editingAgent.id ? updated : a)));
+      showSuccess('Agent berhasil diupdate!');
+      setEditModalVisible(false);
+      setEditingAgent(null);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Gagal mengupdate agent';
+      showError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ---- TOGGLE ENABLED ----
+  const handleToggleEnabled = async (agent: AiAgent) => {
+    try {
+      const updated = await aiApi.toggleEnabled(agent.id);
+      setAgents((prev) =>
+        prev.map((a) => (a.id === agent.id ? { ...a, isEnabled: updated.isEnabled } : a)),
+      );
+      showSuccess(updated.isEnabled ? 'Agent diaktifkan' : 'Agent dinonaktifkan');
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Gagal mengubah status agent';
+      showError(msg);
+    }
+  };
+
+  // ---- SWITCH MODE ----
   const handleSwitchMode = async (agentId: string, currentMode: 'BOT' | 'HUMAN') => {
     const newMode = currentMode === 'BOT' ? 'HUMAN' : 'BOT';
     try {
@@ -125,23 +222,14 @@ const AiAgentPage = () => {
     }
   };
 
+  // ---- UPLOAD KNOWLEDGE ----
   const handleUploadKnowledge = async (agentId: string, file: File) => {
-    setUploading(true);
+    setUploading(agentId);
     try {
       const result = await aiApi.uploadKnowledge(agentId, file);
       if (result.success) {
         showSuccess(`File "${file.name}" berhasil diupload dan sedang diproses`);
-        
-        // Refresh agent data to get updated knowledge files
-        const agent = agents.find(a => a.id === agentId);
-        if (agent?.sessionId) {
-          const updatedAgent = await aiApi.getAgent(agent.sessionId);
-          if (updatedAgent) {
-            setAgents((prev) =>
-              prev.map((a) => (a.id === agentId ? updatedAgent : a)),
-            );
-          }
-        }
+        await fetchKnowledge(agentId);
       } else {
         showError('Upload gagal, silakan coba lagi');
       }
@@ -149,10 +237,23 @@ const AiAgentPage = () => {
       const msg = error.response?.data?.message || 'Gagal mengupload file';
       showError(msg);
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   };
 
+  // ---- DELETE KNOWLEDGE ----
+  const handleDeleteKnowledge = async (agentId: string, fileId: string, fileName: string) => {
+    try {
+      await aiApi.deleteKnowledge(agentId, fileId);
+      showSuccess(`File "${fileName}" berhasil dihapus`);
+      await fetchKnowledge(agentId);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Gagal menghapus file';
+      showError(msg);
+    }
+  };
+
+  // ---- HELPERS ----
   const getSessionLabel = (sessionId?: string) => {
     if (!sessionId) return '-';
     const session = sessions.find((s) => s.id === sessionId);
@@ -173,15 +274,30 @@ const AiAgentPage = () => {
     }
   };
 
-  const knowledgeColumns = [
+  const getKnowledgeFiles = (agent: AiAgent): AiKnowledgeFile[] => {
+    return knowledgeMap[agent.id] ?? agent.knowledgeFiles ?? [];
+  };
+
+  const availableSessions = sessions.filter(
+    (s) => !agents.some((a) => a.sessionId && a.sessionId === s.id),
+  );
+
+  // ---- KNOWLEDGE TABLE COLUMNS ----
+  const getKnowledgeColumns = (agentId: string) => [
     {
       title: 'File',
       dataIndex: 'fileName',
       key: 'fileName',
-      render: (name: string) => (
+      render: (name: string, record: AiKnowledgeFile) => (
         <Space>
           <FileTextOutlined />
-          <Text>{name}</Text>
+          {record.fileUrl && record.fileUrl !== 'TEMP_URL' ? (
+            <a href={record.fileUrl} target="_blank" rel="noopener noreferrer">
+              {name}
+            </a>
+          ) : (
+            <Text>{name}</Text>
+          )}
         </Space>
       ),
     },
@@ -189,6 +305,7 @@ const AiAgentPage = () => {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      width: 130,
       render: (status: string) => {
         const color = status === 'READY' ? 'success' : status === 'PROCESSING' ? 'warning' : 'error';
         return (
@@ -202,17 +319,32 @@ const AiAgentPage = () => {
       title: 'Upload',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: 120,
       render: (date: string) => new Date(date).toLocaleDateString('id-ID'),
+    },
+    {
+      title: 'Aksi',
+      key: 'actions',
+      width: 80,
+      render: (_: any, record: AiKnowledgeFile) => (
+        <Popconfirm
+          title="Hapus file ini?"
+          description="Embeddings terkait juga akan dihapus."
+          onConfirm={() => handleDeleteKnowledge(agentId, record.id, record.fileName)}
+          okText="Hapus"
+          cancelText="Batal"
+          okButtonProps={{ danger: true }}
+        >
+          <Button type="text" danger icon={<DeleteOutlined />} size="small" />
+        </Popconfirm>
+      ),
     },
   ];
 
-  // Get sessions that don't have an agent yet
-  const availableSessions = sessions.filter(
-    (s) => !agents.some((a) => a.sessionId && a.sessionId === s.id),
-  );
-
+  // ---- RENDER ----
   return (
     <div style={{ padding: '24px' }}>
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <Title level={2} style={{ margin: 0 }}>
@@ -233,13 +365,16 @@ const AiAgentPage = () => {
         </Button>
       </div>
 
+      {/* Info */}
       <Alert
         message="Cara Kerja AI Agent"
         description={
           <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <li><strong>Mode BOT:</strong> Agent akan otomatis membalas pesan masuk menggunakan AI</li>
+            <li><strong>Mode BOT:</strong> Agent akan otomatis membalas pesan masuk menggunakan AI + RAG knowledge</li>
             <li><strong>Mode HUMAN:</strong> Agent dinonaktifkan, semua pesan dijawab manual oleh operator</li>
             <li><strong>Knowledge:</strong> Upload PDF untuk memberikan konteks/pengetahuan tambahan kepada AI</li>
+            <li><strong>System Prompt:</strong> Instruksi dasar untuk mengatur perilaku dan persona AI</li>
+            <li><strong>Fallback Reply:</strong> Balasan otomatis jika AI gagal menjawab</li>
           </ul>
         }
         type="info"
@@ -249,6 +384,7 @@ const AiAgentPage = () => {
         closable
       />
 
+      {/* Content */}
       {fetchingSessions ? (
         <div style={{ textAlign: 'center', padding: 60 }}>
           <Spin size="large" />
@@ -277,128 +413,183 @@ const AiAgentPage = () => {
         </Card>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {agents.map((agent) => (
-            <Card
-              key={agent.id}
-              title={
-                <Space>
-                  <RobotOutlined style={{ color: '#1677ff' }} />
-                  <span>{agent.name}</span>
-                  <Tag color={agent.isEnabled ? 'green' : 'default'}>
-                    {agent.isEnabled ? 'Aktif' : 'Nonaktif'}
-                  </Tag>
-                </Space>
-              }
-              extra={
-                <Space>
-                  <Tooltip title={`Saat ini: ${agent.mode}. Klik untuk switch.`}>
-                    <Button
-                      type={agent.mode === 'BOT' ? 'primary' : 'default'}
-                      icon={agent.mode === 'BOT' ? <RobotOutlined /> : <UserOutlined />}
-                      onClick={() => handleSwitchMode(agent.id, agent.mode)}
-                    >
-                      {agent.mode === 'BOT' ? 'Mode: BOT' : 'Mode: HUMAN'}
-                    </Button>
-                  </Tooltip>
-                </Space>
-              }
-            >
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                {/* Left: Agent Info */}
-                <div>
-                  <Title level={5}>
-                    <SettingOutlined style={{ marginRight: 4 }} />
-                    Konfigurasi
-                  </Title>
-                  <Space direction="vertical" style={{ width: '100%' }} size="small">
-                    <div>
-                      <Text type="secondary">Session: </Text>
-                      <Tag>{getSessionLabel(agent.sessionId)}</Tag>
-                    </div>
-                    <div>
-                      <Text type="secondary">Model: </Text>
-                      <Tag color="blue">{agent.model}</Tag>
-                    </div>
-                    <div>
-                      <Text type="secondary">Temperature: </Text>
-                      <Text>{agent.temperature}</Text>
-                    </div>
-                    <div>
-                      <Text type="secondary">Max Tokens: </Text>
-                      <Text>{agent.maxTokens}</Text>
-                    </div>
+          {agents.map((agent) => {
+            const knowledgeFiles = getKnowledgeFiles(agent);
+            const isUploading = uploading === agent.id;
+            const isKnowledgeLoading = loadingKnowledge[agent.id] ?? false;
+
+            return (
+              <Card
+                key={agent.id}
+                title={
+                  <Space>
+                    <RobotOutlined style={{ color: '#1677ff' }} />
+                    <span>{agent.name}</span>
+                    <Tag color={agent.isEnabled ? 'green' : 'default'}>
+                      {agent.isEnabled ? 'Aktif' : 'Nonaktif'}
+                    </Tag>
+                    <Tag color="blue">{agent.model}</Tag>
+                  </Space>
+                }
+                extra={
+                  <Space>
+                    <Tooltip title={agent.isEnabled ? 'Nonaktifkan agent' : 'Aktifkan agent'}>
+                      <Switch
+                        checked={agent.isEnabled}
+                        onChange={() => handleToggleEnabled(agent)}
+                        checkedChildren={<PoweroffOutlined />}
+                        unCheckedChildren={<PoweroffOutlined />}
+                      />
+                    </Tooltip>
+                    <Tooltip title={`Saat ini: ${agent.mode}. Klik untuk switch.`}>
+                      <Button
+                        type={agent.mode === 'BOT' ? 'primary' : 'default'}
+                        icon={agent.mode === 'BOT' ? <RobotOutlined /> : <UserOutlined />}
+                        onClick={() => handleSwitchMode(agent.id, agent.mode)}
+                      >
+                        {agent.mode === 'BOT' ? 'Mode: BOT' : 'Mode: HUMAN'}
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title="Edit konfigurasi agent">
+                      <Button icon={<EditOutlined />} onClick={() => openEditModal(agent)}>
+                        Edit
+                      </Button>
+                    </Tooltip>
+                  </Space>
+                }
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                  {/* Left: Agent Config */}
+                  <div>
+                    <Title level={5} style={{ marginTop: 0 }}>
+                      <SettingOutlined style={{ marginRight: 4 }} />
+                      Konfigurasi
+                    </Title>
+                    <Descriptions column={1} size="small" bordered>
+                      <Descriptions.Item label="Session">
+                        <Tag>{getSessionLabel(agent.sessionId)}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Model">
+                        <Tag color="blue">{agent.model}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Temperature">
+                        {agent.temperature}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Max Tokens">
+                        {agent.maxTokens}
+                      </Descriptions.Item>
+                    </Descriptions>
+
                     {agent.systemPrompt && (
-                      <div>
-                        <Text type="secondary">System Prompt:</Text>
+                      <div style={{ marginTop: 12 }}>
+                        <Text type="secondary" strong>System Prompt:</Text>
                         <Paragraph
-                          ellipsis={{ rows: 2, expandable: true }}
-                          style={{ marginTop: 4, marginBottom: 0, background: '#f5f5f5', padding: 8, borderRadius: 4 }}
+                          ellipsis={{ rows: 3, expandable: true, symbol: 'Selengkapnya' }}
+                          style={{
+                            marginTop: 4,
+                            marginBottom: 0,
+                            background: '#f5f5f5',
+                            padding: 8,
+                            borderRadius: 4,
+                            fontSize: 13,
+                          }}
                         >
                           {agent.systemPrompt}
                         </Paragraph>
                       </div>
                     )}
+
                     {agent.fallbackReply && (
-                      <div>
-                        <Text type="secondary">Fallback Reply:</Text>
+                      <div style={{ marginTop: 12 }}>
+                        <Text type="secondary" strong>Fallback Reply:</Text>
                         <Paragraph
-                          style={{ marginTop: 4, marginBottom: 0, background: '#fff7e6', padding: 8, borderRadius: 4 }}
+                          style={{
+                            marginTop: 4,
+                            marginBottom: 0,
+                            background: '#fff7e6',
+                            padding: 8,
+                            borderRadius: 4,
+                            fontSize: 13,
+                          }}
                         >
                           {agent.fallbackReply}
                         </Paragraph>
                       </div>
                     )}
-                  </Space>
-                </div>
 
-                {/* Right: Knowledge Files */}
-                <div>
-                  <Title level={5}>
-                    <FileTextOutlined style={{ marginRight: 4 }} />
-                    Knowledge Base
-                  </Title>
+                    {!agent.systemPrompt && !agent.fallbackReply && (
+                      <Alert
+                        message="Belum ada system prompt dan fallback reply"
+                        description="Klik Edit untuk mengatur prompt dan perilaku AI."
+                        type="warning"
+                        showIcon
+                        style={{ marginTop: 12 }}
+                      />
+                    )}
+                  </div>
 
-                  {agent.knowledgeFiles && agent.knowledgeFiles.length > 0 ? (
-                    <Table
-                      columns={knowledgeColumns}
-                      dataSource={agent.knowledgeFiles}
-                      rowKey="id"
-                      size="small"
-                      pagination={false}
-                    />
-                  ) : (
-                    <Empty
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      description="Belum ada knowledge file"
-                      style={{ margin: '16px 0' }}
-                    />
-                  )}
+                  {/* Right: Knowledge Files */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Title level={5} style={{ marginTop: 0 }}>
+                        <FileTextOutlined style={{ marginRight: 4 }} />
+                        Knowledge Base ({knowledgeFiles.length})
+                      </Title>
+                      <Tooltip title="Refresh knowledge files">
+                        <Button
+                          type="text"
+                          icon={<ReloadOutlined />}
+                          size="small"
+                          loading={isKnowledgeLoading}
+                          onClick={() => fetchKnowledge(agent.id)}
+                        />
+                      </Tooltip>
+                    </div>
 
-                  <Upload
-                    accept=".pdf"
-                    showUploadList={false}
-                    beforeUpload={(file) => {
-                      handleUploadKnowledge(agent.id, file);
-                      return false; // prevent default upload
-                    }}
-                  >
-                    <Button
-                      icon={<UploadOutlined />}
-                      loading={uploading}
-                      style={{ marginTop: 8 }}
-                      block
+                    {knowledgeFiles.length > 0 ? (
+                      <Table
+                        columns={getKnowledgeColumns(agent.id)}
+                        dataSource={knowledgeFiles}
+                        rowKey="id"
+                        size="small"
+                        pagination={false}
+                        loading={isKnowledgeLoading}
+                        style={{ marginBottom: 8 }}
+                      />
+                    ) : (
+                      <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description="Belum ada knowledge file"
+                        style={{ margin: '16px 0' }}
+                      />
+                    )}
+
+                    <Upload
+                      accept=".pdf"
+                      showUploadList={false}
+                      beforeUpload={(file) => {
+                        handleUploadKnowledge(agent.id, file);
+                        return false;
+                      }}
                     >
-                      Upload PDF Knowledge
-                    </Button>
-                  </Upload>
+                      <Button
+                        icon={<UploadOutlined />}
+                        loading={isUploading}
+                        style={{ marginTop: 8 }}
+                        block
+                      >
+                        Upload PDF Knowledge
+                      </Button>
+                    </Upload>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* Create Agent Modal */}
+      {/* ==================== CREATE AGENT MODAL ==================== */}
       <Modal
         title={
           <Space>
@@ -409,13 +600,13 @@ const AiAgentPage = () => {
         open={createModalVisible}
         onCancel={() => {
           setCreateModalVisible(false);
-          form.resetFields();
+          createForm.resetFields();
         }}
         footer={null}
         width={500}
       >
         <Form
-          form={form}
+          form={createForm}
           layout="vertical"
           onFinish={handleCreateAgent}
           initialValues={{ isEnabled: true }}
@@ -469,6 +660,134 @@ const AiAgentPage = () => {
               <Button onClick={() => setCreateModalVisible(false)}>Batal</Button>
               <Button type="primary" htmlType="submit" loading={creating} icon={<PlusOutlined />}>
                 Buat Agent
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ==================== EDIT AGENT MODAL ==================== */}
+      <Modal
+        title={
+          <Space>
+            <EditOutlined />
+            <span>Edit Agent: {editingAgent?.name}</span>
+          </Space>
+        }
+        open={editModalVisible}
+        onCancel={() => {
+          setEditModalVisible(false);
+          setEditingAgent(null);
+          editForm.resetFields();
+        }}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          onFinish={handleUpdateAgent}
+        >
+          <Form.Item
+            name="name"
+            label="Nama Agent"
+            rules={[{ required: true, message: 'Nama agent wajib diisi!' }]}
+          >
+            <Input placeholder="Nama agent" prefix={<RobotOutlined />} />
+          </Form.Item>
+
+          <Form.Item
+            name="model"
+            label="AI Model"
+            rules={[{ required: true, message: 'Model wajib dipilih!' }]}
+          >
+            <Select placeholder="Pilih model AI">
+              {MODEL_OPTIONS.map((opt) => (
+                <Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item
+              name="temperature"
+              label={
+                <Tooltip title="Semakin tinggi, semakin kreatif/random. Semakin rendah, semakin konsisten/deterministik.">
+                  <Space>
+                    Temperature
+                    <InfoCircleOutlined style={{ color: '#999' }} />
+                  </Space>
+                </Tooltip>
+              }
+              rules={[{ required: true, message: 'Temperature wajib diisi!' }]}
+            >
+              <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 0.7: '0.7', 1: '1', 2: '2' }} />
+            </Form.Item>
+
+            <Form.Item
+              name="maxTokens"
+              label={
+                <Tooltip title="Panjang maksimum respon AI dalam token (~1 token = 4 karakter)">
+                  <Space>
+                    Max Tokens
+                    <InfoCircleOutlined style={{ color: '#999' }} />
+                  </Space>
+                </Tooltip>
+              }
+              rules={[{ required: true, message: 'Max tokens wajib diisi!' }]}
+            >
+              <InputNumber min={50} max={4096} step={50} style={{ width: '100%' }} />
+            </Form.Item>
+          </div>
+
+          <Form.Item
+            name="systemPrompt"
+            label={
+              <Tooltip title="Instruksi awal untuk AI. Tentukan persona, batasan, dan cara AI menjawab.">
+                <Space>
+                  System Prompt
+                  <InfoCircleOutlined style={{ color: '#999' }} />
+                </Space>
+              </Tooltip>
+            }
+          >
+            <TextArea
+              rows={5}
+              placeholder="Contoh: Kamu adalah customer service toko online bernama TokoKu. Jawab dengan bahasa Indonesia yang ramah dan sopan. Jangan menjawab pertanyaan di luar konteks toko."
+              showCount
+              maxLength={2000}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="fallbackReply"
+            label={
+              <Tooltip title="Balasan otomatis jika AI gagal menjawab atau terjadi error.">
+                <Space>
+                  Fallback Reply
+                  <InfoCircleOutlined style={{ color: '#999' }} />
+                </Space>
+              </Tooltip>
+            }
+          >
+            <TextArea
+              rows={2}
+              placeholder="Contoh: Maaf, saya tidak bisa menjawab pertanyaan itu. Silakan hubungi admin kami."
+              showCount
+              maxLength={500}
+            />
+          </Form.Item>
+
+          <Divider />
+
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={() => setEditModalVisible(false)}>Batal</Button>
+              <Button type="primary" htmlType="submit" loading={saving} icon={<CheckCircleOutlined />}>
+                Simpan Perubahan
               </Button>
             </Space>
           </Form.Item>

@@ -46,7 +46,7 @@ const AuthCallbackPage = () => {
         if (response.user.role === 'admin') {
           navigate('/admin/dashboard');
         } else {
-          navigate('/user/dashboard');
+          navigate('/wa/chat');
         }
       } catch (err: any) {
         const message = err.response?.data?.message || 'Autentikasi gagal. Silakan coba lagi.';

@@ -20,7 +20,7 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
       return <Navigate to="/admin/dashboard" replace />;
     }
     if (role === 'user') {
-      return <Navigate to="/user/dashboard" replace />;
+      return <Navigate to="/wa/chat" replace />;
     }
     return <Navigate to="/" replace />;
   }

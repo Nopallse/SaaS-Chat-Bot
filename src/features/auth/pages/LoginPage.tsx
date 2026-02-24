@@ -29,7 +29,7 @@ const LoginPage = () => {
       if (response.user.role === 'admin') {
         navigate('/admin/dashboard');
       } else {
-        navigate('/user/dashboard');
+        navigate('/wa/chat');
       }
     } catch (err: any) {
       console.log(err);

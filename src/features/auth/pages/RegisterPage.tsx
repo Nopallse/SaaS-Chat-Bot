@@ -33,7 +33,7 @@ const RegisterPage = () => {
         // Auto-login jika tidak perlu verifikasi
         login(response.user, '');
         showSuccess('Registrasi berhasil!');
-        navigate('/user/dashboard');
+        navigate('/wa/chat');
       }
     } catch (err: any) {
       const message = err.response?.data?.message || 'Registrasi gagal. Silakan coba lagi.';

@@ -11,7 +11,6 @@ const HomePage = lazy(() => import('@/features/home/pages/HomePage'));
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'));
 const AuthCallbackPage = lazy(() => import('@/features/auth/pages/AuthCallbackPage'));
-const UserDashboardPage = lazy(() => import('@/features/user/pages/UserDashboardPage'));
 const UserProfilePage = lazy(() => import('@/features/user/pages/UserProfilePage'));
 const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage'));
 const ManageUsersPage = lazy(() => import('@/features/admin/pages/ManageUsersPage'));
@@ -51,7 +50,6 @@ export const AppRoutes = () => {
               </ProtectedRoute>
             }
           >
-            <Route path="/user/dashboard" element={<UserDashboardPage />} />
             <Route path="/user/profile" element={<UserProfilePage />} />
             <Route path="/wa" element={<WaPage />} />
             <Route path="/wa/session" element={<WaSessionPage />} />
