@@ -14,6 +14,9 @@ const AuthCallbackPage = lazy(() => import('@/features/auth/pages/AuthCallbackPa
 const UserProfilePage = lazy(() => import('@/features/user/pages/UserProfilePage'));
 const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage'));
 const ManageUsersPage = lazy(() => import('@/features/admin/pages/ManageUsersPage'));
+const ManagePackagesPage = lazy(() => import('@/features/admin/pages/ManagePackagesPage'));
+const ManagePaymentsPage = lazy(() => import('@/features/admin/pages/ManagePaymentsPage'));
+const ManageClientLogosPage = lazy(() => import('@/features/admin/pages/ManageClientLogosPage'));
 const WaSessionPage = lazy(() => import('@/features/wa/pages/WaSessionPage'));
 const WaBroadcastPage = lazy(() => import('@/features/wa/pages/WaBroadcastPage'));
 const WaGroupPage = lazy(() => import('@/features/wa/pages/WaGroupPage'));
@@ -71,6 +74,9 @@ export const AppRoutes = () => {
           >
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
             <Route path="/admin/accounts" element={<ManageUsersPage />} />
+            <Route path="/admin/packages" element={<ManagePackagesPage />} />
+            <Route path="/admin/payments" element={<ManagePaymentsPage />} />
+            <Route path="/admin/client-logos" element={<ManageClientLogosPage />} />
           </Route>
 
           {/* 404 */}

@@ -1,9 +1,10 @@
 import { Layout, Menu } from 'antd';
-import { 
-  DashboardOutlined, 
-  UserOutlined, 
+import {
+  DashboardOutlined,
+  UserOutlined,
   CreditCardOutlined,
   AppstoreOutlined,
+  PictureOutlined,
   SettingOutlined,
   QuestionCircleOutlined,
   LogoutOutlined
@@ -58,6 +59,12 @@ const AdminSidebar = ({ collapsed }: AdminSidebarProps) => {
           label: 'Packages',
           onClick: () => navigate('/admin/packages'),
         },
+        {
+          key: '/admin/client-logos',
+          icon: <PictureOutlined />,
+          label: 'Client Logos',
+          onClick: () => navigate('/admin/client-logos'),
+        },
       ],
     },
   ];
@@ -95,9 +102,9 @@ const AdminSidebar = ({ collapsed }: AdminSidebarProps) => {
   ];
 
   return (
-    <Sider 
-      trigger={null} 
-      collapsible 
+    <Sider
+      trigger={null}
+      collapsible
       collapsed={collapsed}
       width={250}
       style={{
@@ -105,17 +112,17 @@ const AdminSidebar = ({ collapsed }: AdminSidebarProps) => {
         borderRight: '1px solid #f0f0f0',
       }}
     >
-      <div style={{ 
-        height: '70px', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        height: '70px',
+        display: 'flex',
+        alignItems: 'center',
         padding: '0 24px',
         borderBottom: '1px solid #f0f0f0'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <img 
-            src="/logo.png" 
-            alt="Logo" 
+          <img
+            src="/logo.png"
+            alt="Logo"
             style={{
               height: '32px',
               width: 'auto',
@@ -124,21 +131,21 @@ const AdminSidebar = ({ collapsed }: AdminSidebarProps) => {
           />
         </div>
       </div>
-      
+
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
-        style={{ 
+        style={{
           borderRight: 0,
           marginTop: '16px'
         }}
         items={mainMenuItems}
       />
-      
+
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
-        style={{ 
+        style={{
           borderRight: 0,
           marginTop: '24px'
         }}
