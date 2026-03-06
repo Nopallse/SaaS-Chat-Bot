@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /user/
+Disallow: /wa/
+Disallow: /email/
+Disallow: /ai/
+Disallow: /auth/callback
+
+Sitemap: https://mitbiz.id/sitemap.xml
