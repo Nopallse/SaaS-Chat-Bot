@@ -46,7 +46,7 @@ const WaSessionPage = () => {
       const data = await waApi.getSessions();
       setSessions(data);
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Gagal memuat sessions';
+      const message = error.response?.data?.message || 'Gagal memuat session';
       showError(message);
     } finally {
       setFetching(false);
