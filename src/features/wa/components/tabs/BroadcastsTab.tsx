@@ -12,11 +12,14 @@ import {
   Checkbox,
   Tabs,
   Card,
+  Upload,
 } from 'antd';
 import {
   SendOutlined,
   PictureOutlined,
   FileTextOutlined,
+  UploadOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import { waApi, type WhatsAppSession, type BroadcastResult } from '../../services/waApi';
 import { contactsApi } from '@/features/contacts/services/contactsApi';
@@ -24,6 +27,7 @@ import type { WhatsAppContact } from '@/features/contacts/types/contacts';
 import ContactSelectorModal from '@/features/contacts/components/ContactSelectorModal';
 import PhoneNumberInput from '@/features/contacts/components/PhoneNumberInput';
 import { useNotification } from '@/hooks/useNotification';
+import { mediaApi } from '@/services/mediaApi';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -60,6 +64,8 @@ const BroadcastsTab = ({ onNewBroadcast: _onNewBroadcast }: BroadcastsTabProps) 
   const [fetchingContacts, setFetchingContacts] = useState(false);
   const [contactSelectorVisible, setContactSelectorVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('create');
+  const [uploading, setUploading] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const { showSuccess, showError } = useNotification();
 
   useEffect(() => {
@@ -101,6 +107,21 @@ const BroadcastsTab = ({ onNewBroadcast: _onNewBroadcast }: BroadcastsTabProps) 
     form.setFieldsValue({ phones: allPhones });
     setContactSelectorVisible(false);
     showSuccess(`${selectedPhones.length} contact dipilih`);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const result = await mediaApi.uploadImage(file);
+      setUploadedImageUrl(result.uri);
+      form.setFieldsValue({ imageUrl: result.uri });
+      showSuccess('Gambar berhasil diupload');
+    } catch (error: any) {
+      showError(error.response?.data?.message || 'Gagal upload gambar');
+    } finally {
+      setUploading(false);
+    }
+    return false;
   };
 
   const handleBroadcast = async (values: any) => {
@@ -328,12 +349,34 @@ const BroadcastsTab = ({ onNewBroadcast: _onNewBroadcast }: BroadcastsTabProps) 
               </Form.Item>
             ) : (
               <>
+                <Form.Item label="Upload Gambar">
+                  <Upload
+                    name="file"
+                    accept="image/*"
+                    showUploadList={false}
+                    beforeUpload={handleImageUpload}
+                  >
+                    <Button icon={uploading ? <LoadingOutlined /> : <UploadOutlined />} loading={uploading}>
+                      {uploadedImageUrl ? 'Ganti Gambar' : 'Upload Gambar'}
+                    </Button>
+                  </Upload>
+                  {uploadedImageUrl && (
+                    <div style={{ marginTop: 8 }}>
+                      <img
+                        src={uploadedImageUrl}
+                        alt="preview"
+                        style={{ maxWidth: 200, maxHeight: 150, borderRadius: 8, border: '1px solid #d9d9d9' }}
+                      />
+                    </div>
+                  )}
+                </Form.Item>
                 <Form.Item
                   name="imageUrl"
                   label="Image URL"
-                  rules={[{ required: true, message: 'Image URL is required!' }]}
+                  rules={[{ required: true, message: 'Image URL is required! Upload gambar atau masukkan URL.' }]}
+                  tooltip="Upload gambar di atas atau masukkan URL langsung"
                 >
-                  <Input placeholder="Enter image URL (e.g. https://example.com/image.jpg)" />
+                  <Input placeholder="URL gambar (otomatis terisi jika upload)" />
                 </Form.Item>
                 <Form.Item name="caption" label="Caption (Optional)">
                   <TextArea rows={3} placeholder="Enter image caption (optional)" />

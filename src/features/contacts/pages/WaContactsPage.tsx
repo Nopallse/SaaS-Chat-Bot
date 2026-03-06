@@ -19,6 +19,7 @@ import {
   MessageOutlined,
   FileExcelOutlined,
   CheckCircleOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
 import { contactsApi } from '../services/contactsApi';
@@ -62,6 +63,26 @@ const WaContactsPage = () => {
     } finally {
       setFetching(false);
     }
+  };
+
+  const handleDelete = (contact: WhatsAppContact) => {
+    Modal.confirm({
+      title: 'Hapus kontak?',
+      content: `Kontak ${contact.phone} akan dihapus permanen.`,
+      okText: 'Hapus',
+      okType: 'danger',
+      cancelText: 'Batal',
+      onOk: async () => {
+        try {
+          await contactsApi.deleteWhatsAppContact(contact.id);
+          showSuccess('Kontak berhasil dihapus');
+          fetchContacts();
+        } catch (error: any) {
+          const msg = error.response?.data?.message || 'Gagal menghapus kontak';
+          showError(msg);
+        }
+      },
+    });
   };
 
   const handleImport = async () => {
@@ -199,6 +220,19 @@ const WaContactsPage = () => {
       key: 'createdAt',
       render: (date: string) => new Date(date).toLocaleDateString('id-ID'),
       responsive: ['md'] as any,
+    },
+    {
+      title: 'Aksi',
+      key: 'action',
+      render: (_: any, record: WhatsAppContact) => (
+        <Button
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => handleDelete(record)}
+          size="small"
+        />
+      ),
     },
   ];
 

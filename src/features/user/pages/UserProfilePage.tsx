@@ -1,5 +1,5 @@
-import { Form, Input, Button, Card, Typography, Avatar, Upload, Space } from 'antd';
-import { UserOutlined, UploadOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Card, Typography, Avatar, Upload, Space, Tag } from 'antd';
+import { UserOutlined, UploadOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/authStore';
@@ -15,7 +15,7 @@ const UserProfilePage = () => {
   const [fetching, setFetching] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user?.avatar);
   const [pictureFile, setPictureFile] = useState<File | undefined>();
-  const [profileData, setProfileData] = useState<{ name?: string; email?: string }>({});
+  const [profileData, setProfileData] = useState<{ name?: string; email?: string; role?: string; emailVerifiedAt?: string | null }>({});
   const { showSuccess, showError } = useNotification();
   const [form] = Form.useForm();
 
@@ -27,6 +27,8 @@ const UserProfilePage = () => {
         setProfileData({
           name: profile.name,
           email: profile.email,
+          role: profile.role,
+          emailVerifiedAt: profile.emailVerifiedAt,
         });
         form.setFieldsValue({
           name: profile.name,
@@ -67,10 +69,11 @@ const UserProfilePage = () => {
       );
       
       // Update profileData state
-      setProfileData({
+      setProfileData((prev) => ({
+        ...prev,
         name: updatedProfile.name,
         email: updatedProfile.email,
-      });
+      }));
       setAvatarUrl(updatedProfile.avatar);
       setPictureFile(undefined);
       showSuccess('Profil berhasil diperbarui!');
@@ -120,6 +123,22 @@ const UserProfilePage = () => {
           </Space>
           <Title level={4} style={{ marginTop: '16px' }}>{profileData.name || user?.name || 'User'}</Title>
           <p style={{ color: '#666' }}>{profileData.email || user?.email || ''}</p>
+          <Space size={8} style={{ marginTop: 4 }}>
+            {profileData.role && (
+              <Tag color={profileData.role === 'ADMIN' ? 'red' : 'blue'}>
+                {profileData.role}
+              </Tag>
+            )}
+            {profileData.emailVerifiedAt ? (
+              <Tag icon={<CheckCircleOutlined />} color="success">
+                Email Terverifikasi
+              </Tag>
+            ) : (
+              <Tag icon={<CloseCircleOutlined />} color="warning">
+                Email Belum Terverifikasi
+              </Tag>
+            )}
+          </Space>
         </div>
 
         <Form

@@ -14,6 +14,8 @@ export const userApi = {
       email: user.email || '',
       avatar: user.picture ? `${API_URL}${user.picture}` : undefined,
       phone: user.telephone || '',
+      role: user.role || '',
+      emailVerifiedAt: user.emailVerifiedAt || null,
       createdAt: user.createdAt || new Date().toISOString(),
       updatedAt: user.updatedAt || new Date().toISOString(),
     };

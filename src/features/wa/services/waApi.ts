@@ -1,4 +1,5 @@
 import { axiosInstance } from '@/services/axiosInstance';
+import { mediaApi } from '@/services/mediaApi';
 
 export interface WhatsAppSession {
   id: string;
@@ -262,32 +263,36 @@ export const waApi = {
     return payload?.data || payload;
   },
 
-  // Send image from chat console
+  // Send image from chat console (upload via /media/upload, then send text with URL)
   sendChatImage: async (sessionId: string, to: string, file: File, caption?: string): Promise<{ messageId: string | null; to: string; mediaUrl: string }> => {
-    const formData = new FormData();
-    formData.append('sessionId', sessionId);
-    formData.append('to', to);
-    formData.append('file', file);
-    if (caption) formData.append('caption', caption);
-    const response = await axiosInstance.post('/wa/send-image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    const payload: any = response.data;
-    return payload?.data || payload;
+    // Step 1: Upload image to media service
+    const uploaded = await mediaApi.uploadImage(file);
+
+    // Step 2: Send text message with caption or image URL
+    const text = caption ? `${caption}\n${uploaded.uri}` : uploaded.uri;
+    const result = await waApi.sendChatMessage(sessionId, to, text);
+
+    return {
+      messageId: result?.messageId ?? null,
+      to,
+      mediaUrl: uploaded.uri,
+    };
   },
 
-  // Send document from chat console
+  // Send document from chat console (upload via /media/upload, then send text with URL)
   sendChatDocument: async (sessionId: string, to: string, file: File, caption?: string): Promise<{ messageId: string | null; to: string; mediaUrl: string }> => {
-    const formData = new FormData();
-    formData.append('sessionId', sessionId);
-    formData.append('to', to);
-    formData.append('file', file);
-    if (caption) formData.append('caption', caption);
-    const response = await axiosInstance.post('/wa/send-document', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    const payload: any = response.data;
-    return payload?.data || payload;
+    // Step 1: Upload file to media service
+    const uploaded = await mediaApi.uploadImage(file);
+
+    // Step 2: Send text message with file URL
+    const text = caption ? `${caption}\n${uploaded.uri}` : uploaded.uri;
+    const result = await waApi.sendChatMessage(sessionId, to, text);
+
+    return {
+      messageId: result?.messageId ?? null,
+      to,
+      mediaUrl: uploaded.uri,
+    };
   },
 
   // Mark conversation as read
