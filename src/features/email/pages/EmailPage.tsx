@@ -1,17 +1,22 @@
 import { useState, useMemo } from 'react';
 import { Typography } from 'antd';
 import { useSearchParams } from 'react-router-dom';
-import { ConnectTab, BroadcastTab, ContactsTab } from '../components/tabs';
+import { ConnectTab, BroadcastTab, ContactsTab, InboxTab } from '../components/tabs';
 
 const { Title, Text } = Typography;
 
-type TabKey = 'connect' | 'broadcast' | 'contacts';
+type TabKey = 'connect' | 'inbox' | 'broadcast' | 'contacts';
 
 const tabConfig: { key: TabKey; label: string; description: string }[] = [
   {
     key: 'connect',
     label: 'Connect',
     description: 'Connect and manage your Gmail accounts for email communication.',
+  },
+  {
+    key: 'inbox',
+    label: 'Inbox',
+    description: 'Lihat dan sinkronisasi email dari akun Gmail yang terhubung.',
   },
   {
     key: 'broadcast',
@@ -48,6 +53,8 @@ const EmailPage = () => {
     switch (activeTab) {
       case 'connect':
         return <ConnectTab />;
+      case 'inbox':
+        return <InboxTab onSwitchToConnect={handleSwitchToConnect} />;
       case 'broadcast':
         return <BroadcastTab onSwitchToConnect={handleSwitchToConnect} />;
       case 'contacts':

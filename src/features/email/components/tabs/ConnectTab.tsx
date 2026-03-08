@@ -1,8 +1,31 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Space, Tag, message, Steps, Alert, List, theme } from 'antd';
-import { CheckCircleOutlined, GoogleOutlined, LinkOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Button,
+  Space,
+  Tag,
+  message,
+  Steps,
+  Alert,
+  List,
+  theme,
+  Form,
+  Input,
+  Select,
+} from 'antd';
+import {
+  CheckCircleOutlined,
+  GoogleOutlined,
+  LinkOutlined,
+  SendOutlined,
+  MailOutlined,
+} from '@ant-design/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { emailApi } from '@/features/email/services/emailApi';
+import { useNotification } from '@/hooks/useNotification';
+
+const { TextArea } = Input;
+const { Option } = Select;
 
 const ConnectTab = () => {
   const { isAuthenticated } = useAuth();
@@ -10,6 +33,11 @@ const ConnectTab = () => {
   const [loading, setLoading] = useState(false);
   const [connected, setConnected] = useState(false);
   const [accounts, setAccounts] = useState<Array<{ id: string; email: string }>>([]);
+
+  // Send Test
+  const [testForm] = Form.useForm();
+  const [sendingTest, setSendingTest] = useState(false);
+  const { showSuccess, showError } = useNotification();
 
   const handleConnect = async () => {
     if (!isAuthenticated) {
@@ -47,6 +75,25 @@ const ConnectTab = () => {
 
     loadAccounts();
   }, []);
+
+  const handleSendTest = async (values: {
+    fromEmail: string;
+    toEmail: string;
+    subject: string;
+    html: string;
+  }) => {
+    setSendingTest(true);
+    try {
+      await emailApi.sendTest(values);
+      showSuccess('Email test berhasil dikirim!');
+      testForm.resetFields(['toEmail', 'subject', 'html']);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Gagal mengirim email test';
+      showError(msg);
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   const steps = [
     {
@@ -126,6 +173,83 @@ const ConnectTab = () => {
           </Card>
         </Space>
       </Card>
+
+      {/* Send Test Email */}
+      {connected && accounts.length > 0 && (
+        <Card title="Kirim Email Test" style={{ marginTop: 24 }}>
+          <Alert
+            message="Test Koneksi Email"
+            description="Kirim email test untuk memastikan akun Gmail Anda terhubung dengan baik dan dapat mengirim email."
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+          <Form
+            form={testForm}
+            layout="vertical"
+            onFinish={handleSendTest}
+            style={{ maxWidth: 600 }}
+          >
+            <Form.Item
+              name="fromEmail"
+              label="Dari"
+              rules={[{ required: true, message: 'Pilih email pengirim' }]}
+            >
+              <Select placeholder="Pilih akun Gmail pengirim">
+                {accounts.map((acc) => (
+                  <Option key={acc.id} value={acc.email}>
+                    <Space>
+                      <MailOutlined />
+                      {acc.email}
+                    </Space>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="toEmail"
+              label="Kepada"
+              rules={[
+                { required: true, message: 'Masukkan email tujuan' },
+                { type: 'email', message: 'Format email tidak valid' },
+              ]}
+            >
+              <Input placeholder="contoh: penerima@email.com" />
+            </Form.Item>
+
+            <Form.Item
+              name="subject"
+              label="Subjek"
+              rules={[{ required: true, message: 'Masukkan subjek email' }]}
+            >
+              <Input placeholder="Subjek email test" />
+            </Form.Item>
+
+            <Form.Item
+              name="html"
+              label="Isi Email (HTML)"
+              rules={[{ required: true, message: 'Masukkan isi email' }]}
+            >
+              <TextArea
+                rows={5}
+                placeholder="<p>Halo, ini adalah email test dari sistem.</p>"
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                icon={<SendOutlined />}
+                loading={sendingTest}
+              >
+                Kirim Email Test
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
+      )}
     </div>
   );
 };
