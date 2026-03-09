@@ -142,7 +142,9 @@ const ManageUsersPage = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <Title level={2} style={{ margin: 0 }}>Manajemen Pengguna</Title>
-    
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+          Tambah User
+        </Button>
       </div>
 
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
