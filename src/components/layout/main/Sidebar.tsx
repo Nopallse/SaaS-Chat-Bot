@@ -4,6 +4,7 @@ import {
   UserOutlined,
   MessageOutlined,
   MailOutlined,
+  CreditCardOutlined,
   LogoutOutlined,
   ApiOutlined,
   RobotOutlined,
@@ -41,6 +42,11 @@ const Sidebar = () => {
       key: '/email',
       icon: <MailOutlined />,
       label: <Link to="/email">Email</Link>,
+    },
+    {
+      key: '/user/payment',
+      icon: <CreditCardOutlined />,
+      label: <Link to="/user/payment">Payment</Link>,
     },
     {
       key: 'ai',

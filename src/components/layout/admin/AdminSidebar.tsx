@@ -54,10 +54,21 @@ const AdminSidebar = ({ collapsed }: AdminSidebarProps) => {
           onClick: () => navigate('/admin/payments'),
         },
         {
-          key: '/admin/packages',
+          key: 'package-management',
           icon: <AppstoreOutlined />,
-          label: 'Packages',
-          onClick: () => navigate('/admin/packages'),
+          label: 'Package Management',
+          children: [
+            {
+              key: '/admin/packages',
+              label: 'Packages',
+              onClick: () => navigate('/admin/packages'),
+            },
+            {
+              key: '/admin/package-lists',
+              label: 'Package Features',
+              onClick: () => navigate('/admin/package-lists'),
+            },
+          ],
         },
         {
           key: '/admin/client-logos',

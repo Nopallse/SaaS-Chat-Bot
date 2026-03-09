@@ -2,11 +2,14 @@ import { axiosInstance } from '@/services/axiosInstance';
 import { API_URL } from '@/utils/constants';
 import type { UserProfile, UpdateProfileData } from '../types/user';
 
+function unwrap<T = any>(payload: any): T {
+  return payload?.data !== undefined ? payload.data : payload;
+}
+
 export const userApi = {
   getProfile: async (): Promise<UserProfile> => {
-    // Gunakan /auth/me untuk get current user
     const response = await axiosInstance.get('/auth/me');
-    const user = response.data as any;
+    const user = unwrap<any>(response.data);
     
     return {
       id: user.id,
@@ -22,7 +25,6 @@ export const userApi = {
   },
 
   updateProfile: async (userId: string, data: UpdateProfileData, pictureFile?: File): Promise<UserProfile> => {
-    // Gunakan /user/:id untuk update dengan file upload
     const formData = new FormData();
     
     // Tambahkan fields
@@ -40,7 +42,7 @@ export const userApi = {
       },
     });
 
-    const updatedUser = response.data as any;
+    const updatedUser = unwrap<any>(response.data);
     return {
       id: updatedUser.id,
       name: updatedUser.name || '',

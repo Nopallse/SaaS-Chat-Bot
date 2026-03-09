@@ -1,4 +1,4 @@
-import { Typography, Button, Card, Row, Col, Space, Layout, theme } from "antd";
+import { Typography, Button, Card, Row, Col, Space, Layout, theme, Grid } from "antd";
 import {
   MessageOutlined,
   MailOutlined,
@@ -29,6 +29,7 @@ import { SparkleIcon, PlayCircleIcon, ChatBubbleIcon } from "../icons";
 const { Title, Paragraph, Text } = Typography;
 const { Content } = Layout;
 const { useToken } = theme;
+const { useBreakpoint } = Grid;
 
 /* ──────────────────────────────────────────────
  * Shared card styles
@@ -61,6 +62,8 @@ const PROBLEM_ICONS: React.ReactNode[] = [
  * ────────────────────────────────────────────── */
 const HomePage = () => {
   const { token } = useToken();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   return (
     <Content style={{ background: "#fff" }}>
@@ -68,10 +71,10 @@ const HomePage = () => {
       <div
         style={{
           backgroundImage: `url(${heroImage})`,
-          backgroundSize: "contain",
-          backgroundPosition: "center",
+          backgroundSize: isMobile ? "cover" : "contain",
+          backgroundPosition: isMobile ? "center top" : "center",
           backgroundRepeat: "no-repeat",
-          padding: "72px 24px 360px",
+          padding: isMobile ? "42px 16px 180px" : "72px 24px 360px",
         }}
       >
         <div style={{ maxWidth: 1400, margin: "0 auto" }}>
@@ -85,7 +88,7 @@ const HomePage = () => {
               level={1}
               style={{
                 margin: 0,
-                fontSize: 48,
+                fontSize: isMobile ? 32 : 48,
                 fontWeight: 700,
                 lineHeight: 1.2,
                 textShadow: "0 2px 8px rgba(0,0,0,0.1)",
@@ -104,10 +107,10 @@ const HomePage = () => {
 
             <Paragraph
               style={{
-                fontSize: 16,
+                fontSize: isMobile ? 14 : 16,
                 color: "#595959",
                 margin: 0,
-                maxWidth: 800,
+                maxWidth: isMobile ? 340 : 800,
                 textShadow: "0 1px 4px rgba(0,0,0,0.05)",
               }}
             >
@@ -116,16 +119,28 @@ const HomePage = () => {
               fitur broadcast cerdas, dan integrasi yang seamless.
             </Paragraph>
 
-            <Space size="middle" wrap style={{ justifyContent: "center" }}>
-              <Button type="primary" size="large" icon={<PlayCircleIcon />}>
+            <Space
+              direction={isMobile ? "vertical" : "horizontal"}
+              size={isMobile ? 12 : "middle"}
+              wrap
+              style={{ justifyContent: "center", width: "100%" }}
+            >
+              <Button
+                type="primary"
+                size={isMobile ? "middle" : "large"}
+                icon={<PlayCircleIcon />}
+                style={{ width: isMobile ? "100%" : undefined, maxWidth: isMobile ? 300 : undefined }}
+              >
                 Request Demo
               </Button>
               <Button
-                size="large"
+                size={isMobile ? "middle" : "large"}
                 icon={<ChatBubbleIcon />}
                 style={{
                   color: token.colorPrimary,
                   borderColor: token.colorPrimary,
+                  width: isMobile ? "100%" : undefined,
+                  maxWidth: isMobile ? 300 : undefined,
                 }}
               >
                 Hubungi Tim Sales
@@ -136,7 +151,7 @@ const HomePage = () => {
       </div>
 
       {/* ── Problem ──────────────────────────── */}
-      <SectionWrapper id="features" padding="64px 24px 40px">
+      <SectionWrapper padding="64px 24px 40px">
         <Row gutter={[40, 32]} align="middle">
           <Col xs={24} lg={12}>
             <SectionLabel>PROBLEM SECTION</SectionLabel>
@@ -215,7 +230,7 @@ const HomePage = () => {
       </SectionWrapper>
 
       {/* ── Fitur Utama ──────────────────────── */}
-      <SectionWrapper padding="44px 24px 80px">
+      <SectionWrapper id="features" padding="44px 24px 80px">
         <SectionLabel>FITUR UTAMA</SectionLabel>
         <Title
           level={2}
@@ -256,7 +271,7 @@ const HomePage = () => {
       </SectionWrapper>
 
       {/* ── Cara Kerja ───────────────────────── */}
-      <SectionWrapper padding="64px 24px 80px" centered>
+      <SectionWrapper id="how-it-works" padding="64px 24px 80px" centered>
         <SectionLabel>CARA KERJA</SectionLabel>
         <Title
           level={2}
@@ -389,7 +404,7 @@ const HomePage = () => {
       </SectionWrapper>
 
       {/* ── Pricing ──────────────────────────── */}
-      <SectionWrapper padding="78px 24px 110px" centered>
+      <SectionWrapper id="pricing" padding="78px 24px 110px" centered>
         <SectionLabel>PRICING</SectionLabel>
         <Title
           level={2}

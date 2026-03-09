@@ -85,11 +85,20 @@ export interface ClientLogo {
 }
 
 // ==================== PACKAGE ====================
-export type PackageFeature =
-  | 'whatsapp_chat_console'
-  | 'email_chat_console'
-  | 'ai_training_config'
-  | 'broadcast_scheduling';
+export interface PackageListOption {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePackageListDto {
+  name: string;
+}
+
+export interface UpdatePackageListDto {
+  name: string;
+}
 
 export interface PackageData {
   id: string;
@@ -98,7 +107,7 @@ export interface PackageData {
   price: number;
   currency: string;
   billingCycle: 'monthly' | 'yearly';
-  features: PackageFeature[] | null;
+  features: string[] | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -110,7 +119,7 @@ export interface CreatePackageDto {
   price: number;
   currency?: string;
   billingCycle: 'monthly' | 'yearly';
-  features?: PackageFeature[];
+  packageListIds: string[];
 }
 
 export interface UpdatePackageDto {
@@ -119,7 +128,7 @@ export interface UpdatePackageDto {
   price?: number;
   currency?: string;
   billingCycle?: 'monthly' | 'yearly';
-  features?: PackageFeature[];
+  packageListIds?: string[];
   isActive?: boolean;
 }
 

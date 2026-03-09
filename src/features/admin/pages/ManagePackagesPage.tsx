@@ -17,20 +17,14 @@ import {
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../services/adminApi';
-import type { PackageData, CreatePackageDto, UpdatePackageDto, PackageFeature } from '../types/admin';
+import type { PackageData, CreatePackageDto, UpdatePackageDto, PackageListOption } from '../types/admin';
 
 const { Title } = Typography;
 const { TextArea } = Input;
 
-const FEATURE_OPTIONS: { label: string; value: PackageFeature }[] = [
-    { label: 'WhatsApp Chat Console', value: 'whatsapp_chat_console' },
-    { label: 'Email Chat Console', value: 'email_chat_console' },
-    { label: 'AI Training & Config', value: 'ai_training_config' },
-    { label: 'Broadcast Scheduling', value: 'broadcast_scheduling' },
-];
-
 const ManagePackagesPage = () => {
     const [data, setData] = useState<PackageData[]>([]);
+    const [packageListOptions, setPackageListOptions] = useState<PackageListOption[]>([]);
     const [loading, setLoading] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [editingPackage, setEditingPackage] = useState<PackageData | null>(null);
@@ -49,8 +43,19 @@ const ManagePackagesPage = () => {
         }
     };
 
+    const fetchPackageLists = async () => {
+        try {
+            const lists = await adminApi.getPackageLists();
+            setPackageListOptions(lists);
+        } catch (error) {
+            message.error('Gagal memuat daftar fitur paket');
+            console.error(error);
+        }
+    };
+
     useEffect(() => {
         fetchPackages();
+        fetchPackageLists();
     }, []);
 
     const handleAdd = () => {
@@ -60,18 +65,32 @@ const ManagePackagesPage = () => {
         setIsModalVisible(true);
     };
 
-    const handleEdit = (record: PackageData) => {
-        setEditingPackage(record);
-        form.setFieldsValue({
-            name: record.name,
-            description: record.description,
-            price: record.price,
-            currency: record.currency,
-            billingCycle: record.billingCycle,
-            features: record.features || [],
-            isActive: record.isActive,
-        });
-        setIsModalVisible(true);
+    const handleEdit = async (record: PackageData) => {
+        try {
+            const options = packageListOptions.length ? packageListOptions : await adminApi.getPackageLists();
+            if (!packageListOptions.length) {
+                setPackageListOptions(options);
+            }
+
+            const selectedIds = (record.features || [])
+                .map((featureName) => options.find((opt) => opt.name === featureName)?.id)
+                .filter((id): id is string => Boolean(id));
+
+            setEditingPackage(record);
+            form.setFieldsValue({
+                name: record.name,
+                description: record.description,
+                price: record.price,
+                currency: record.currency,
+                billingCycle: record.billingCycle,
+                packageListIds: selectedIds,
+                isActive: record.isActive,
+            });
+            setIsModalVisible(true);
+        } catch (error) {
+            message.error('Gagal memuat data fitur paket');
+            console.error(error);
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -124,7 +143,7 @@ const ManagePackagesPage = () => {
                     <Space wrap>
                         {features.map((f) => (
                             <Tag key={f} color="cyan">
-                                {f.replace(/_/g, ' ')}
+                                {f}
                             </Tag>
                         ))}
                     </Space>
@@ -145,7 +164,7 @@ const ManagePackagesPage = () => {
             key: 'actions',
             render: (_, record) => (
                 <Space>
-                    <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+                    <Button type="link" icon={<EditOutlined />} onClick={() => void handleEdit(record)} />
                     <Popconfirm title="Hapus paket ini?" onConfirm={() => handleDelete(record.id)} okText="Ya" cancelText="Batal">
                         <Button type="link" danger icon={<DeleteOutlined />} />
                     </Popconfirm>
@@ -206,8 +225,16 @@ const ManagePackagesPage = () => {
                             </Select>
                         </Form.Item>
                     </Space>
-                    <Form.Item name="features" label="Fitur">
-                        <Select mode="multiple" options={FEATURE_OPTIONS} placeholder="Pilih fitur" />
+                    <Form.Item
+                        name="packageListIds"
+                        label="Fitur"
+                        rules={[{ required: true, message: 'Pilih minimal satu fitur' }]}
+                    >
+                        <Select
+                            mode="multiple"
+                            options={packageListOptions.map((item) => ({ label: item.name, value: item.id }))}
+                            placeholder="Pilih fitur"
+                        />
                     </Form.Item>
                     {editingPackage && (
                         <Form.Item name="isActive" label="Aktif" valuePropName="checked">

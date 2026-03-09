@@ -18,7 +18,6 @@ import {
   Modal,
   Alert,
   Popconfirm,
-  Slider,
   Divider,
   Descriptions,
 } from 'antd';
@@ -54,6 +53,37 @@ const MODEL_OPTIONS = [
   { label: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
   { label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash' },
 ];
+
+const TEMPERATURE_PRESETS = [
+  {
+    label: 'Strict / Precise',
+    description: 'Jawaban faktual dan konsisten',
+    value: 0.3,
+  },
+  {
+    label: 'Professional',
+    description: 'Bahasa bisnis yang jelas dan sopan',
+    value: 0.6,
+  },
+  {
+    label: 'Friendly',
+    description: 'Lebih conversational dan engaging',
+    value: 0.75,
+  },
+  {
+    label: 'Creative',
+    description: 'Lebih fleksibel dan imajinatif',
+    value: 0.9,
+  },
+];
+
+const getClosestTemperaturePreset = (value: number) => {
+  return TEMPERATURE_PRESETS.reduce((closest, current) => {
+    const currentDiff = Math.abs(current.value - value);
+    const closestDiff = Math.abs(closest.value - value);
+    return currentDiff < closestDiff ? current : closest;
+  }, TEMPERATURE_PRESETS[0]);
+};
 
 const AiAgentPage = () => {
   const [sessions, setSessions] = useState<WhatsAppSession[]>([]);
@@ -157,11 +187,12 @@ const AiAgentPage = () => {
 
   // ---- EDIT / UPDATE ----
   const openEditModal = (agent: AiAgent) => {
+    const closestTemperature = getClosestTemperaturePreset(agent.temperature);
     setEditingAgent(agent);
     editForm.setFieldsValue({
       name: agent.name,
       model: agent.model,
-      temperature: agent.temperature,
+      temperature: closestTemperature.value,
       maxTokens: agent.maxTokens,
       systemPrompt: agent.systemPrompt || '',
       fallbackReply: agent.fallbackReply || '',
@@ -715,7 +746,7 @@ const AiAgentPage = () => {
             <Form.Item
               name="temperature"
               label={
-                <Tooltip title="Semakin tinggi, semakin kreatif/random. Semakin rendah, semakin konsisten/deterministik.">
+                <Tooltip title="Pilih gaya jawaban AI. Nilai decimal tetap dikirim otomatis ke backend.">
                   <Space>
                     Temperature
                     <InfoCircleOutlined style={{ color: '#999' }} />
@@ -724,7 +755,23 @@ const AiAgentPage = () => {
               }
               rules={[{ required: true, message: 'Temperature wajib diisi!' }]}
             >
-              <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 0.7: '0.7', 1: '1', 2: '2' }} />
+              <Select placeholder="Pilih gaya jawaban AI" optionLabelProp="label">
+                {TEMPERATURE_PRESETS.map((preset) => (
+                  <Option
+                    key={preset.value}
+                    value={preset.value}
+                    label={`${preset.label} (${preset.value})`}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <Text>{preset.label}</Text>
+                      <Text type="secondary">{preset.value}</Text>
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {preset.description}
+                    </Text>
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
 
             <Form.Item

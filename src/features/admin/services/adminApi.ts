@@ -10,8 +10,11 @@ import type {
   UpdateAdminUserDto,
   ClientLogo,
   PackageData,
+  PackageListOption,
   CreatePackageDto,
   UpdatePackageDto,
+  CreatePackageListDto,
+  UpdatePackageListDto,
   PaymentData,
   UpdatePaymentDto,
 } from '../types/admin';
@@ -126,6 +129,26 @@ export const adminApi = {
     const response = await axiosInstance.get('/admin/packages');
     const inner = unwrap(response.data);
     return Array.isArray(inner?.data) ? inner.data : (Array.isArray(inner) ? inner : []);
+  },
+
+  getPackageLists: async (): Promise<PackageListOption[]> => {
+    const response = await axiosInstance.get('/admin/package-lists');
+    const inner = unwrap(response.data);
+    return Array.isArray(inner?.data) ? inner.data : (Array.isArray(inner) ? inner : []);
+  },
+
+  createPackageList: async (data: CreatePackageListDto) => {
+    const response = await axiosInstance.post('/admin/package-lists', data);
+    return unwrap(response.data);
+  },
+
+  updatePackageList: async (id: string, data: UpdatePackageListDto) => {
+    const response = await axiosInstance.patch(`/admin/package-lists/${id}`, data);
+    return unwrap(response.data);
+  },
+
+  deletePackageList: async (id: string) => {
+    await axiosInstance.delete(`/admin/package-lists/${id}`);
   },
 
   createPackage: async (data: CreatePackageDto) => {
