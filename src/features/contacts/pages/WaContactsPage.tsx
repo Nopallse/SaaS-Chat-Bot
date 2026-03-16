@@ -12,6 +12,8 @@ import {
   Statistic,
   Row,
   Col,
+  Input,
+  Select,
 } from 'antd';
 import {
   UploadOutlined,
@@ -20,11 +22,13 @@ import {
   FileExcelOutlined,
   CheckCircleOutlined,
   DeleteOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
 import { contactsApi } from '../services/contactsApi';
-import type { WhatsAppContact, ImportResponse } from '../types/contacts';
+import type { WhatsAppContact, ImportResponse, GroupImportResponse } from '../types/contacts';
 import { useNotification } from '@/hooks/useNotification';
+import { waApi, type WhatsAppGroup } from '@/features/wa/services/waApi';
 
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
@@ -34,9 +38,15 @@ const WaContactsPage = () => {
   const [fetching, setFetching] = useState(true);
   const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
+  const [importMode, setImportMode] = useState<'excel' | 'group'>('excel');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResponse | null>(null);
+  const [groupImportResult, setGroupImportResult] = useState<GroupImportResponse | null>(null);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [availableGroups, setAvailableGroups] = useState<WhatsAppGroup[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [selectedGroupJid, setSelectedGroupJid] = useState<string | undefined>(undefined);
+  const [manualGroupJid, setManualGroupJid] = useState('');
   const { showSuccess, showError } = useNotification();
 
   // Check mobile screen size
@@ -83,6 +93,31 @@ const WaContactsPage = () => {
         }
       },
     });
+  };
+
+  const fetchAvailableGroups = async () => {
+    setLoadingGroups(true);
+    try {
+      const data = await waApi.getGroups();
+      setAvailableGroups(data?.groups || []);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Gagal memuat grup WhatsApp';
+      showError(msg);
+      setAvailableGroups([]);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  const openExcelImportModal = () => {
+    setImportMode('excel');
+    setImportModalVisible(true);
+  };
+
+  const openGroupImportModal = async () => {
+    setImportMode('group');
+    setImportModalVisible(true);
+    await fetchAvailableGroups();
   };
 
   const handleImport = async () => {
@@ -140,10 +175,38 @@ const WaContactsPage = () => {
     }
   };
 
+  const handleGroupImport = async () => {
+    const groupJid = manualGroupJid.trim() || selectedGroupJid?.trim() || '';
+
+    if (!groupJid) {
+      showError('Pilih grup WhatsApp atau masukkan Group JID terlebih dahulu');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const result = await contactsApi.importGroupContacts(groupJid);
+      setGroupImportResult(result);
+      showSuccess(`Import member group ${result.groupSubject || 'WhatsApp'} berhasil`);
+      await fetchContacts();
+      setSelectedGroupJid(undefined);
+      setManualGroupJid('');
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Gagal import kontak dari grup WhatsApp';
+      showError(msg);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleImportModalClose = () => {
     setImportModalVisible(false);
+    setImportMode('excel');
     setFileList([]);
     setImportResult(null);
+    setGroupImportResult(null);
+    setSelectedGroupJid(undefined);
+    setManualGroupJid('');
   };
 
   const uploadProps: UploadProps = {
@@ -241,6 +304,43 @@ const WaContactsPage = () => {
     activeWhatsApp: whatsappContacts?.filter((c) => c.status === 'ACTIVE').length || 0,
   };
 
+  const groupImportColumns = [
+    {
+      title: 'Phone',
+      dataIndex: 'phone',
+      key: 'phone',
+      render: (phone: string | null) => phone || <Text type="secondary">-</Text>,
+    },
+    {
+      title: 'JID',
+      dataIndex: 'jid',
+      key: 'jid',
+      render: (jid: string) => <code style={{ fontSize: isMobile ? '11px' : '12px' }}>{jid}</code>,
+    },
+    {
+      title: 'Result',
+      dataIndex: 'result',
+      key: 'result',
+      render: (result: 'IMPORTED' | 'UPDATED' | 'SKIPPED') => {
+        const colorMap = {
+          IMPORTED: 'success',
+          UPDATED: 'processing',
+          SKIPPED: 'error',
+        } as const;
+
+        return <Tag color={colorMap[result]}>{result}</Tag>;
+      },
+    },
+    {
+      title: 'Jenis',
+      dataIndex: 'isLid',
+      key: 'isLid',
+      render: (isLid: boolean) => (
+        <Tag color={isLid ? 'warning' : 'default'}>{isLid ? 'LID' : 'PHONE'}</Tag>
+      ),
+    },
+  ];
+
   return (
     <div style={{ padding: isMobile ? '12px' : '24px', minHeight: '100vh', background: isMobile ? '#f5f5f5' : 'transparent' }}>
       <div style={{ marginBottom: isMobile ? 16 : 24 }}>
@@ -283,12 +383,21 @@ const WaContactsPage = () => {
         <Button
           type="primary"
           icon={<UploadOutlined />}
-          onClick={() => setImportModalVisible(true)}
+          onClick={openExcelImportModal}
           size={isMobile ? 'large' : 'middle'}
           block={isMobile}
           style={isMobile ? { height: 48 } : {}}
         >
           Import dari Excel
+        </Button>
+        <Button
+          icon={<TeamOutlined />}
+          onClick={openGroupImportModal}
+          size={isMobile ? 'large' : 'middle'}
+          block={isMobile}
+          style={isMobile ? { height: 48 } : {}}
+        >
+          Import dari Group
         </Button>
         <Button
           icon={<ReloadOutlined />}
@@ -315,26 +424,23 @@ const WaContactsPage = () => {
             showTotal: (total) => `Total ${total} WhatsApp contacts`,
           }}
           scroll={{ x: isMobile ? 800 : 'max-content' }}
-          locale={{ emptyText: 'Belum ada WhatsApp contact. Import dari Excel untuk menambahkan.' }}
+          locale={{ emptyText: 'Belum ada WhatsApp contact. Import dari Excel atau group WhatsApp untuk menambahkan.' }}
           size={isMobile ? 'small' : 'middle'}
         />
       </Card>
 
       {/* Import Modal */}
       <Modal
-        title="Import Kontak WhatsApp dari Excel"
+        title={importMode === 'excel' ? 'Import Kontak WhatsApp dari Excel' : 'Import Kontak dari Group WhatsApp'}
         open={importModalVisible}
         onCancel={handleImportModalClose}
-        onOk={handleImport}
-        okText="Import"
-        cancelText="Batal"
-        confirmLoading={importing}
+        footer={null}
         width={isMobile ? '95%' : 600}
         styles={{
           body: { padding: isMobile ? '20px 16px' : '24px' },
         }}
       >
-        {!importResult ? (
+        {importMode === 'excel' ? !importResult ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <Alert
               message="Format Excel"
@@ -369,6 +475,13 @@ const WaContactsPage = () => {
                 Hanya file .xlsx atau .xls yang didukung
               </p>
             </Dragger>
+
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }} wrap>
+              <Button onClick={handleImportModalClose}>Batal</Button>
+              <Button type="primary" onClick={handleImport} loading={importing}>
+                Import
+              </Button>
+            </Space>
           </Space>
         ) : (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -428,6 +541,123 @@ const WaContactsPage = () => {
             <Button type="primary" block onClick={handleImportModalClose} size={isMobile ? 'large' : 'middle'}>
               Tutup
             </Button>
+          </Space>
+        ) : !groupImportResult ? (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Alert
+              message="Import member grup ke kontak WhatsApp"
+              description="Pilih grup dari daftar WhatsApp yang terhubung atau masukkan Group JID secara manual. Semua member grup akan diimport sebagai kontak dengan source GROUP_IMPORT."
+              type="info"
+              showIcon
+            />
+
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 8 }}>Pilih grup</div>
+              <Select
+                showSearch
+                allowClear
+                placeholder={loadingGroups ? 'Memuat grup...' : 'Pilih grup WhatsApp'}
+                value={selectedGroupJid}
+                onChange={(value) => setSelectedGroupJid(value)}
+                loading={loadingGroups}
+                style={{ width: '100%' }}
+                optionFilterProp="label"
+                options={availableGroups.map((group) => ({
+                  value: group.id,
+                  label: `${group.subject || 'Unnamed Group'} (${group.size || group.participants || 0} members)`,
+                }))}
+              />
+              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                <Text type="secondary">
+                  {availableGroups.length > 0
+                    ? `Ditemukan ${availableGroups.length} grup dari session WhatsApp aktif.`
+                    : 'Belum ada grup yang berhasil dimuat. Anda tetap bisa input Group JID manual.'}
+                </Text>
+                <Button size="small" icon={<ReloadOutlined />} onClick={fetchAvailableGroups} loading={loadingGroups}>
+                  Refresh Grup
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 8 }}>Atau masukkan Group JID manual</div>
+              <Input
+                placeholder="1203630xxxxxxxx@g.us"
+                value={manualGroupJid}
+                onChange={(event) => setManualGroupJid(event.target.value)}
+              />
+            </div>
+
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }} wrap>
+              <Button onClick={handleImportModalClose}>Batal</Button>
+              <Button type="primary" onClick={handleGroupImport} loading={importing}>
+                Import Member Grup
+              </Button>
+            </Space>
+          </Space>
+        ) : (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Alert
+              message="Import group berhasil"
+              description={groupImportResult.note}
+              type="success"
+              showIcon
+            />
+
+            <div>
+              <Title level={5} style={{ marginBottom: 8 }}>Informasi Grup</Title>
+              <Space direction="vertical" size={4}>
+                <Text strong>{groupImportResult.groupSubject || '-'}</Text>
+                <Text type="secondary">{groupImportResult.groupJid}</Text>
+              </Space>
+            </div>
+
+            <div>
+              <Title level={5}>Ringkasan Import</Title>
+              <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                <Col xs={12} sm={12} md={6}>
+                  <Statistic title="Total Member" value={groupImportResult.totalMembers || 0} />
+                </Col>
+                <Col xs={12} sm={12} md={6}>
+                  <Statistic
+                    title="Diimport"
+                    value={groupImportResult.summary.imported || 0}
+                    valueStyle={{ color: '#3f8600' }}
+                  />
+                </Col>
+                <Col xs={12} sm={12} md={6}>
+                  <Statistic
+                    title="Diupdate"
+                    value={groupImportResult.summary.updated || 0}
+                    valueStyle={{ color: '#0c73e0' }}
+                  />
+                </Col>
+                <Col xs={12} sm={12} md={6}>
+                  <Statistic
+                    title="LID Account"
+                    value={groupImportResult.summary.lidCount || 0}
+                    valueStyle={{ color: '#d48806' }}
+                  />
+                </Col>
+              </Row>
+            </div>
+
+            <div>
+              <Title level={5}>Detail Member</Title>
+              <Table
+                columns={groupImportColumns}
+                dataSource={groupImportResult.details || []}
+                rowKey={(record) => `${record.jid}-${record.phone}-${record.result}`}
+                size={isMobile ? 'small' : 'middle'}
+                pagination={{ pageSize: 5, hideOnSinglePage: true }}
+                scroll={{ x: isMobile ? 720 : 'max-content' }}
+              />
+            </div>
+
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }} wrap>
+              <Button onClick={() => setGroupImportResult(null)}>Import Grup Lain</Button>
+              <Button type="primary" onClick={handleImportModalClose}>Tutup</Button>
+            </Space>
           </Space>
         )}
       </Modal>

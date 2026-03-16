@@ -46,3 +46,26 @@ export interface ImportResponse {
   summary: ImportSummary;
 }
 
+export interface GroupImportSummary {
+  imported: number;
+  updated: number;
+  skipped: number;
+  lidCount: number;
+}
+
+export interface GroupImportDetail {
+  phone: string | null;
+  jid: string;
+  result: 'IMPORTED' | 'UPDATED' | 'SKIPPED';
+  isLid: boolean;
+}
+
+export interface GroupImportResponse {
+  groupJid: string;
+  groupSubject: string;
+  totalMembers: number;
+  summary: GroupImportSummary;
+  note?: string;
+  details: GroupImportDetail[];
+}
+

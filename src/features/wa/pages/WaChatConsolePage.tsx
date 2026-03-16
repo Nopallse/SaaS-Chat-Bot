@@ -8,7 +8,6 @@ import {
   Typography,
   Badge,
   Space,
-  Select,
   Empty,
   Spin,
   Dropdown,
@@ -33,7 +32,6 @@ import {
   waApi,
   type WhatsAppConversation,
   type WhatsAppMessage,
-  type WhatsAppSession,
 } from '../services/waApi';
 import { aiApi, type AiAgent } from '@/features/ai/services/aiApi';
 import { useNotification } from '@/hooks/useNotification';
@@ -48,7 +46,6 @@ const { Sider, Content } = Layout;
 const { Text, Title } = Typography;
 
 const WaChatConsolePage = () => {
-  const [sessions, setSessions] = useState<WhatsAppSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [conversations, setConversations] = useState<WhatsAppConversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<WhatsAppConversation[]>([]);
@@ -85,7 +82,7 @@ const WaChatConsolePage = () => {
       if (!sessionId) return;
       if (!silent) setLoadingConvos(true);
       try {
-        const data = await waApi.getConversationList(sessionId);
+        const data = await waApi.getConversationList();
         setConversations(data);
       } catch {
         if (!silent) showError('Failed to load conversations');
@@ -150,14 +147,14 @@ const WaChatConsolePage = () => {
         conv.alternativeJids && conv.alternativeJids.length > 0
           ? conv.alternativeJids.join(',')
           : conv.jid;
-      waApi.getMessages(sessId, jidParam).then(setMessages).catch(() => {});
+      waApi.getMessages(jidParam).then(setMessages).catch(() => {});
     };
 
     // Helper: reload conversation list (silent)
     const reloadConversations = () => {
       const sessId = selectedSessionRef.current;
       if (!sessId) return;
-      waApi.getConversationList(sessId).then(setConversations).catch(() => {});
+      waApi.getConversationList().then(setConversations).catch(() => {});
     };
 
     const handleNewMessage = (payload: {
@@ -256,7 +253,6 @@ const WaChatConsolePage = () => {
   const loadSessions = async () => {
     try {
       const data = await waApi.getSessions();
-      setSessions(data);
       const connected = data.find((s) => s.connected);
       if (connected) setSelectedSessionId(connected.id);
       else if (data.length > 0) setSelectedSessionId(data[0].id);
@@ -277,7 +273,7 @@ const WaChatConsolePage = () => {
 
     setLoadingSessionAgent(true);
     try {
-      const agent = await aiApi.getAgent(sessionId);
+      const agent = await aiApi.getAgent();
       setSessionAgent(agent);
     } catch (error: any) {
       if (error?.response?.status === 404) {
@@ -319,7 +315,7 @@ const WaChatConsolePage = () => {
           conv.alternativeJids && conv.alternativeJids.length > 0
             ? conv.alternativeJids.join(',')
             : conv.jid;
-        const data = await waApi.getMessages(selectedSessionId, jidParam);
+        const data = await waApi.getMessages(jidParam);
         setMessages(data);
       } catch {
         if (!silent) showError('Failed to load messages');
@@ -341,7 +337,7 @@ const WaChatConsolePage = () => {
           conv.alternativeJids && conv.alternativeJids.length > 0
             ? conv.alternativeJids.join(',')
             : conv.jid;
-        await waApi.markAsRead(selectedSessionId, jidParam);
+        await waApi.markAsRead(jidParam);
         setConversations((prev) =>
           prev.map((c) => (c.id === conv.id ? { ...c, unreadCount: 0 } : c)),
         );
@@ -372,13 +368,12 @@ const WaChatConsolePage = () => {
       const isGroup = selectedConversation.jid.endsWith('@g.us');
       if (isGroup) {
         await waApi.sendToGroupText({
-          sessionId: selectedSessionId,
           groupJid: selectedConversation.jid,
           text,
         });
       } else {
         // Send using the full JID directly (supports @lid, @s.whatsapp.net)
-        const result = await waApi.sendChatMessage(selectedSessionId, selectedConversation.jid, text);
+        const result = await waApi.sendChatMessage(selectedConversation.jid, text);
         // Update optimistic message with real messageId so websocket dedup works
         if (result?.messageId) {
           setMessages((prev) =>
@@ -444,7 +439,6 @@ const WaChatConsolePage = () => {
     try {
       if (isImage) {
         const result = await waApi.sendChatImage(
-          selectedSessionId,
           selectedConversation.jid,
           savedFile,
           savedCaption,
@@ -460,7 +454,6 @@ const WaChatConsolePage = () => {
         }
       } else {
         const result = await waApi.sendChatDocument(
-          selectedSessionId,
           selectedConversation.jid,
           savedFile,
           savedCaption,
@@ -554,26 +547,6 @@ const WaChatConsolePage = () => {
               <Button type="text" icon={<MoreOutlined />} />
             </Dropdown>
           </div>
-
-          {/* Session selector */}
-          <Select
-            style={{ width: '100%', marginBottom: 8 }}
-            placeholder="Select session"
-            value={selectedSessionId || undefined}
-            onChange={setSelectedSessionId}
-            options={sessions.map((s) => ({
-              value: s.id,
-              label: (
-                <Space>
-                  <span>{s.label || s.id.slice(0, 12)}</span>
-                  <Tag color={s.connected ? 'green' : 'default'} style={{ fontSize: 10 }}>
-                    {s.connected ? 'Online' : 'Offline'}
-                  </Tag>
-                </Space>
-              ),
-            }))}
-            size="small"
-          />
 
           {/* Search */}
           <Input

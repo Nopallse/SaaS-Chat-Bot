@@ -20,13 +20,13 @@ const UserDashboardPage = () => {
                 Manage WhatsApp sessions and send broadcasts
               </Paragraph>
               <Space>
-                <Link to="/wa/session">
+                <Link to="/wa?tab=sessions">
                   <Button type="link">Sessions</Button>
                 </Link>
-                <Link to="/wa/broadcast">
+                <Link to="/wa?tab=broadcasts">
                   <Button type="link">Broadcast</Button>
                 </Link>
-                <Link to="/wa/group">
+                <Link to="/wa?tab=groups">
                   <Button type="link">Groups</Button>
                 </Link>
               </Space>

@@ -20,8 +20,6 @@ const ManagePackageListsPage = lazy(() => import('@/features/admin/pages/ManageP
 const ManagePaymentsPage = lazy(() => import('@/features/admin/pages/ManagePaymentsPage'));
 const ManageClientLogosPage = lazy(() => import('@/features/admin/pages/ManageClientLogosPage'));
 const WaSessionPage = lazy(() => import('@/features/wa/pages/WaSessionPage'));
-const WaBroadcastPage = lazy(() => import('@/features/wa/pages/WaBroadcastPage'));
-const WaGroupPage = lazy(() => import('@/features/wa/pages/WaGroupPage'));
 const WaChatConsolePage = lazy(() => import('@/features/wa/pages/WaChatConsolePage'));
 const WaPage = lazy(() => import('@/features/wa/pages/WaPage'));
 const WaContactsPage = lazy(() => import('@/features/contacts/pages/WaContactsPage'));
@@ -59,8 +57,8 @@ export const AppRoutes = () => {
             <Route path="/user/payment" element={<UserPaymentPage />} />
             <Route path="/wa" element={<WaPage />} />
             <Route path="/wa/session" element={<WaSessionPage />} />
-            <Route path="/wa/broadcast" element={<WaBroadcastPage />} />
-            <Route path="/wa/group" element={<WaGroupPage />} />
+            <Route path="/wa/broadcast" element={<Navigate to="/wa?tab=broadcasts" replace />} />
+            <Route path="/wa/group" element={<Navigate to="/wa?tab=groups" replace />} />
             <Route path="/wa/chat" element={<WaChatConsolePage />} />
             <Route path="/wa/contacts" element={<WaContactsPage />} />
             <Route path="/email" element={<EmailPage />} />

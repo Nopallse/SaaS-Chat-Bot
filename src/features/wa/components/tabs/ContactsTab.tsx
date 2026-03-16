@@ -26,11 +26,13 @@ import {
   UploadOutlined,
   ReloadOutlined,
   DownloadOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
 import { contactsApi } from '@/features/contacts/services/contactsApi';
-import type { WhatsAppContact } from '@/features/contacts/types/contacts';
+import type { GroupImportResponse, WhatsAppContact } from '@/features/contacts/types/contacts';
 import { useNotification } from '@/hooks/useNotification';
+import { waApi, type WhatsAppGroup } from '../../services/waApi';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -58,6 +60,12 @@ const ContactsTab = () => {
     rows: number;
     phones: { created: number; updated: number; skipped: number };
   } | null>(null);
+  const [groupImportModalVisible, setGroupImportModalVisible] = useState(false);
+  const [availableGroups, setAvailableGroups] = useState<WhatsAppGroup[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [selectedGroupJid, setSelectedGroupJid] = useState<string | undefined>(undefined);
+  const [manualGroupJid, setManualGroupJid] = useState('');
+  const [groupImportResult, setGroupImportResult] = useState<GroupImportResponse | null>(null);
   const { showError, showSuccess } = useNotification();
 
   useEffect(() => {
@@ -181,6 +189,57 @@ const ContactsTab = () => {
       await fetchContacts();
     } catch (error: any) {
       showError(error.response?.data?.message || 'Gagal import contacts');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const fetchAvailableGroups = async () => {
+    setLoadingGroups(true);
+    try {
+      const data = await waApi.getGroups();
+      setAvailableGroups(data?.groups || []);
+    } catch (error: any) {
+      showError(error.response?.data?.message || 'Gagal memuat grup WhatsApp');
+      setAvailableGroups([]);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  const openGroupImportModal = async () => {
+    setGroupImportResult(null);
+    setSelectedGroupJid(undefined);
+    setManualGroupJid('');
+    setGroupImportModalVisible(true);
+    await fetchAvailableGroups();
+  };
+
+  const closeGroupImportModal = () => {
+    setGroupImportModalVisible(false);
+    setSelectedGroupJid(undefined);
+    setManualGroupJid('');
+    setGroupImportResult(null);
+  };
+
+  const handleGroupImport = async () => {
+    const groupJid = manualGroupJid.trim() || selectedGroupJid?.trim() || '';
+
+    if (!groupJid) {
+      showError('Pilih grup WhatsApp atau isi Group JID terlebih dahulu');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const result = await contactsApi.importGroupContacts(groupJid);
+      setGroupImportResult(result);
+      showSuccess(`Import member group ${result.groupSubject || 'WhatsApp'} berhasil`);
+      await fetchContacts();
+      setSelectedGroupJid(undefined);
+      setManualGroupJid('');
+    } catch (error: any) {
+      showError(error.response?.data?.message || 'Gagal import kontak dari group');
     } finally {
       setImporting(false);
     }
@@ -317,6 +376,9 @@ const ContactsTab = () => {
             }}
           >
             Import Contacts
+          </Button>
+          <Button icon={<TeamOutlined />} onClick={openGroupImportModal}>
+            Import Group
           </Button>
           <Button
             type="primary"
@@ -487,6 +549,118 @@ const ContactsTab = () => {
             message={`Rows: ${importSummary.rows}`}
             description={`Phones - Created: ${importSummary.phones.created}, Updated: ${importSummary.phones.updated}, Skipped: ${importSummary.phones.skipped}`}
           />
+        )}
+      </Modal>
+
+      <Modal
+        title="Import Contacts From WhatsApp Group"
+        open={groupImportModalVisible}
+        onCancel={closeGroupImportModal}
+        footer={null}
+      >
+        {!groupImportResult ? (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Alert
+              type="info"
+              showIcon
+              message="Import semua member group ke kontak"
+              description="Pilih group dari daftar WhatsApp aktif atau isi Group JID manual. Semua member akan disimpan sebagai WhatsApp contact dengan source GROUP_IMPORT."
+            />
+
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 8 }}>Pilih group</div>
+              <Select
+                showSearch
+                allowClear
+                placeholder={loadingGroups ? 'Memuat groups...' : 'Pilih WhatsApp group'}
+                loading={loadingGroups}
+                value={selectedGroupJid}
+                onChange={(value) => setSelectedGroupJid(value)}
+                style={{ width: '100%' }}
+                optionFilterProp="label"
+                options={availableGroups.map((group) => ({
+                  value: group.id,
+                  label: `${group.subject || 'Unnamed Group'} (${group.size || group.participants || 0} members)`,
+                }))}
+              />
+              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+                  {availableGroups.length > 0
+                    ? `Ditemukan ${availableGroups.length} group dari session aktif.`
+                    : 'Group belum termuat. Anda tetap bisa isi Group JID manual.'}
+                </span>
+                <Button size="small" icon={<ReloadOutlined />} onClick={fetchAvailableGroups} loading={loadingGroups}>
+                  Refresh Group
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 8 }}>Atau isi Group JID manual</div>
+              <Input
+                placeholder="1203630xxxxxxxx@g.us"
+                value={manualGroupJid}
+                onChange={(event) => setManualGroupJid(event.target.value)}
+              />
+            </div>
+
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={closeGroupImportModal}>Cancel</Button>
+              <Button type="primary" icon={<TeamOutlined />} loading={importing} onClick={handleGroupImport}>
+                Import Members
+              </Button>
+            </Space>
+          </Space>
+        ) : (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Alert
+              type="success"
+              showIcon
+              message={`Group ${groupImportResult.groupSubject || '-'} berhasil diimport`}
+              description={groupImportResult.note || 'Semua member yang bisa diproses sudah ditambahkan atau diupdate sebagai kontak.'}
+            />
+
+            <Card size="small">
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <div><strong>Group:</strong> {groupImportResult.groupSubject || '-'}</div>
+                <div><strong>Group JID:</strong> {groupImportResult.groupJid}</div>
+                <div><strong>Total Member:</strong> {groupImportResult.totalMembers}</div>
+                <div><strong>Imported:</strong> {groupImportResult.summary.imported}</div>
+                <div><strong>Updated:</strong> {groupImportResult.summary.updated}</div>
+                <div><strong>Skipped:</strong> {groupImportResult.summary.skipped}</div>
+                <div><strong>LID Account:</strong> {groupImportResult.summary.lidCount}</div>
+              </Space>
+            </Card>
+
+            <div style={{ maxHeight: 240, overflow: 'auto', border: '1px solid #f0f0f0', borderRadius: 8, padding: 12 }}>
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                {groupImportResult.details.map((item, index) => (
+                  <div
+                    key={`${item.jid}-${item.phone}-${item.result}-${index}`}
+                    style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 500 }}>{item.phone || item.jid}</div>
+                      <div style={{ color: '#8c8c8c', fontSize: 12 }}>{item.jid}</div>
+                    </div>
+                    <Space size={4} wrap>
+                      <Tag color={item.result === 'IMPORTED' ? 'success' : item.result === 'UPDATED' ? 'processing' : 'error'}>
+                        {item.result}
+                      </Tag>
+                      <Tag color={item.isLid ? 'warning' : 'default'}>
+                        {item.isLid ? 'LID' : 'PHONE'}
+                      </Tag>
+                    </Space>
+                  </div>
+                ))}
+              </Space>
+            </div>
+
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={() => setGroupImportResult(null)}>Import Group Lain</Button>
+              <Button type="primary" onClick={closeGroupImportModal}>Close</Button>
+            </Space>
+          </Space>
         )}
       </Modal>
 

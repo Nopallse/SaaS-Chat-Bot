@@ -23,8 +23,15 @@ export interface QrResponse {
 }
 
 export interface BroadcastTextRequest {
-  sessionId: string;
+  name?: string;
+  isScheduled?: boolean;
+  scheduleType?: 'SEND_NOW' | 'SCHEDULE_LATER';
+  timetableRepeater?: 'ONCE' | 'EVERY_DAY' | 'EVERY_WEEK' | 'EVERY_MONTH';
+  scheduledDate?: string;
+  scheduledTime?: string;
   recipients: string[];
+  contactIds?: string[];
+  useAllContacts?: boolean;
   text: string;
   delayMs?: number;
   jitterMs?: number;
@@ -32,8 +39,15 @@ export interface BroadcastTextRequest {
 }
 
 export interface BroadcastImageRequest {
-  sessionId: string;
+  name?: string;
+  isScheduled?: boolean;
+  scheduleType?: 'SEND_NOW' | 'SCHEDULE_LATER';
+  timetableRepeater?: 'ONCE' | 'EVERY_DAY' | 'EVERY_WEEK' | 'EVERY_MONTH';
+  scheduledDate?: string;
+  scheduledTime?: string;
   recipients: string[];
+  contactIds?: string[];
+  useAllContacts?: boolean;
   imageUrl: string;
   caption?: string;
   delayMs?: number;
@@ -43,13 +57,34 @@ export interface BroadcastImageRequest {
 
 export interface BroadcastResult {
   campaignId?: string;
+  status?: 'SCHEDULED';
+  message?: string;
   total: number;
-  summary: Record<string, number>;
-  results: Array<{
+  summary?: Record<string, number>;
+  results?: Array<{
     phone: string;
     status: 'SENT' | 'SKIPPED' | 'FAILED';
     error?: string;
   }>;
+}
+
+export interface WaCampaign {
+  id: string;
+  name: string;
+  type: 'TEXT' | 'IMAGE';
+  scheduleType: 'SEND_NOW' | 'SCHEDULE_LATER';
+  isScheduled: boolean;
+  status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'PAUSED';
+  createdAt: string;
+  scheduledDate?: string | null;
+  scheduledTime?: string | null;
+  timetableRepeater?: 'ONCE' | 'EVERY_DAY' | 'EVERY_WEEK' | 'EVERY_MONTH' | null;
+  stats: {
+    total: number;
+    sent: number;
+    failed: number;
+    skipped: number;
+  };
 }
 
 export interface WhatsAppGroup {
@@ -65,20 +100,17 @@ export interface GroupListResponse {
 }
 
 export interface GroupSendTextRequest {
-  sessionId: string;
   groupJid: string;
   text: string;
 }
 
 export interface GroupSendImageRequest {
-  sessionId: string;
   groupJid: string;
   imageUrl: string;
   caption?: string;
 }
 
 export interface GroupDmMembersTextRequest {
-  sessionId: string;
   groupJid: string;
   text: string;
   delayMs?: number;
@@ -88,7 +120,6 @@ export interface GroupDmMembersTextRequest {
 }
 
 export interface GroupDmMembersImageRequest {
-  sessionId: string;
   groupJid: string;
   imageUrl: string;
   caption?: string;
@@ -171,8 +202,8 @@ export const waApi = {
   },
 
   // Logout from a session
-  logoutSession: async (sessionId: string): Promise<{ success: boolean }> => {
-    const response = await axiosInstance.post(`/wa/logout/${sessionId}`);
+  logoutSession: async (): Promise<{ success: boolean }> => {
+    const response = await axiosInstance.post('/wa/logout');
     // Handle nested response structure: { statusCode, message, data: { ... } }
     const payload: any = response.data;
     return payload?.data || payload;
@@ -197,8 +228,8 @@ export const waApi = {
   },
 
   // Get groups for a session
-  getGroups: async (sessionId: string): Promise<GroupListResponse> => {
-    const response = await axiosInstance.get(`/wa/groups/${sessionId}`);
+  getGroups: async (): Promise<GroupListResponse> => {
+    const response = await axiosInstance.get('/wa/groups');
     // Handle nested response structure: { statusCode, message, data: { ... } }
     const payload: any = response.data;
     const data = payload?.data || payload;
@@ -241,36 +272,43 @@ export const waApi = {
     return result;
   },
 
+  getCampaigns: async (): Promise<WaCampaign[]> => {
+    const response = await axiosInstance.get('/wa/campaigns');
+    const payload: any = response.data;
+    return payload?.data || payload || [];
+  },
+
   // Get conversation list for a session
-  getConversationList: async (sessionId: string, search?: string): Promise<WhatsAppConversation[]> => {
+  getConversationList: async (search?: string): Promise<WhatsAppConversation[]> => {
     const params = search ? { search } : {};
-    const response = await axiosInstance.get(`/wa/list-conversations/${sessionId}`, { params });
+    const response = await axiosInstance.get('/wa/list-conversations', { params });
     const payload: any = response.data;
     return payload?.data || payload || [];
   },
 
   // Get messages for a specific conversation
-  getMessages: async (sessionId: string, jid: string): Promise<WhatsAppMessage[]> => {
-    const response = await axiosInstance.get(`/wa/conversations/${sessionId}/${encodeURIComponent(jid)}`);
+  getMessages: async (jid: string): Promise<WhatsAppMessage[]> => {
+    const response = await axiosInstance.get(`/wa/conversations/${encodeURIComponent(jid)}`);
     const payload: any = response.data;
     return payload?.data || payload || [];
   },
 
   // Send chat message (reply from console)
-  sendChatMessage: async (sessionId: string, to: string, text: string): Promise<{ messageId: string | null; jid: string }> => {
-    const response = await axiosInstance.post('/wa/send', { sessionId, to, text });
+  sendChatMessage: async (to: string, text: string): Promise<{ messageId: string | null; jid: string }> => {
+    const response = await axiosInstance.post('/wa/send', { to, text });
     const payload: any = response.data;
     return payload?.data || payload;
   },
 
   // Send image from chat console (upload via /media/upload, then send text with URL)
-  sendChatImage: async (sessionId: string, to: string, file: File, caption?: string): Promise<{ messageId: string | null; to: string; mediaUrl: string }> => {
+  sendChatImage: async (to: string, file: File, caption?: string): Promise<{ messageId: string | null; to: string; mediaUrl: string }> => {
+
     // Step 1: Upload image to media service
     const uploaded = await mediaApi.uploadImage(file);
 
     // Step 2: Send text message with caption or image URL
     const text = caption ? `${caption}\n${uploaded.uri}` : uploaded.uri;
-    const result = await waApi.sendChatMessage(sessionId, to, text);
+    const result = await waApi.sendChatMessage(to, text);
 
     return {
       messageId: result?.messageId ?? null,
@@ -280,13 +318,14 @@ export const waApi = {
   },
 
   // Send document from chat console (upload via /media/upload, then send text with URL)
-  sendChatDocument: async (sessionId: string, to: string, file: File, caption?: string): Promise<{ messageId: string | null; to: string; mediaUrl: string }> => {
+  sendChatDocument: async (to: string, file: File, caption?: string): Promise<{ messageId: string | null; to: string; mediaUrl: string }> => {
+
     // Step 1: Upload file to media service
     const uploaded = await mediaApi.uploadImage(file);
 
     // Step 2: Send text message with file URL
     const text = caption ? `${caption}\n${uploaded.uri}` : uploaded.uri;
-    const result = await waApi.sendChatMessage(sessionId, to, text);
+    const result = await waApi.sendChatMessage(to, text);
 
     return {
       messageId: result?.messageId ?? null,
@@ -296,22 +335,22 @@ export const waApi = {
   },
 
   // Mark conversation as read
-  markAsRead: async (sessionId: string, jid: string): Promise<{ success: boolean }> => {
-    const response = await axiosInstance.post(`/wa/conversations/${sessionId}/${encodeURIComponent(jid)}/mark-as-read`);
+  markAsRead: async (jid: string): Promise<{ success: boolean }> => {
+    const response = await axiosInstance.post(`/wa/conversations/${encodeURIComponent(jid)}/mark-as-read`);
     const payload: any = response.data;
     return payload?.data || payload;
   },
 
   // Check if a phone number is registered on WhatsApp
-  checkNumber: async (sessionId: string, phone: string): Promise<{ exists: boolean; jid: string | null }> => {
-    const response = await axiosInstance.post(`/wa/check/${sessionId}/${encodeURIComponent(phone)}`);
+  checkNumber: async (phone: string): Promise<{ exists: boolean; jid: string | null }> => {
+    const response = await axiosInstance.get(`/wa/check/${encodeURIComponent(phone)}`);
     const payload: any = response.data;
     return payload?.data || payload;
   },
 
   // Get group member list
-  getGroupMembers: async (sessionId: string, groupJid: string): Promise<{ members: Array<{ id: string; admin?: string | null }> }> => {
-    const response = await axiosInstance.get(`/wa/group/${sessionId}/${encodeURIComponent(groupJid)}/members`);
+  getGroupMembers: async (groupJid: string): Promise<{ members: Array<{ id: string; admin?: string | null }> }> => {
+    const response = await axiosInstance.get(`/wa/group/${encodeURIComponent(groupJid)}/members`);
     const payload: any = response.data;
     return payload?.data || payload;
   },

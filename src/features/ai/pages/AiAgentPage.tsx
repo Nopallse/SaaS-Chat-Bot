@@ -39,7 +39,6 @@ import {
 } from '@ant-design/icons';
 import { waApi, type WhatsAppSession } from '@/features/wa/services/waApi';
 import { aiApi, type AiAgent, type AiKnowledgeFile } from '../services/aiApi';
-import { useAuth } from '@/hooks/useAuth';
 import { useNotification } from '@/hooks/useNotification';
 
 const { Title, Text, Paragraph } = Typography;
@@ -100,7 +99,6 @@ const AiAgentPage = () => {
 
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
-  const { user } = useAuth();
   const { showSuccess, showError } = useNotification();
 
   useEffect(() => {
@@ -112,7 +110,7 @@ const AiAgentPage = () => {
     try {
       const data = await waApi.getSessions();
       setSessions(data);
-      await fetchAgentsBySessions(data);
+      await fetchCurrentAgent(data);
     } catch {
       showError('Gagal memuat sessions');
     } finally {
@@ -120,29 +118,23 @@ const AiAgentPage = () => {
     }
   };
 
-  const fetchAgentsBySessions = async (sessionList: WhatsAppSession[]) => {
+  const fetchCurrentAgent = async (sessionList: WhatsAppSession[]) => {
     if (sessionList.length === 0) {
       setAgents([]);
       return;
     }
 
-    const results = await Promise.allSettled(
-      sessionList.map((session) => aiApi.getAgent(session.id)),
-    );
-
-    const loadedAgents: AiAgent[] = results.flatMap((result) => {
-      if (result.status === 'fulfilled' && result.value) {
-        return [result.value];
+    try {
+      const agent = await aiApi.getAgent();
+      if (agent) {
+        setAgents([agent]);
+        fetchKnowledge(agent.id);
+      } else {
+        setAgents([]);
       }
-      return [];
-    });
-
-    setAgents(loadedAgents);
-
-    // Fetch knowledge for each agent
-    loadedAgents.forEach((agent) => {
-      fetchKnowledge(agent.id);
-    });
+    } catch {
+      setAgents([]);
+    }
   };
 
   const fetchKnowledge = useCallback(async (agentId: string) => {
@@ -159,20 +151,16 @@ const AiAgentPage = () => {
 
   // ---- CREATE ----
   const handleCreateAgent = async (values: any) => {
-    if (!user?.id) {
-      showError('User tidak ditemukan');
-      return;
-    }
-
     setCreating(true);
     try {
       const agent = await aiApi.createAgent({
-        sessionId: values.sessionId,
-        ownerId: user.id,
         name: values.name,
         isEnabled: values.isEnabled ?? true,
+        systemPrompt: values.systemPrompt?.trim() || '',
+        fallbackReply: values.fallbackReply?.trim() || '',
+        language: values.language || 'id',
       });
-      setAgents((prev) => [...prev, agent]);
+      setAgents([agent]);
       fetchKnowledge(agent.id);
       showSuccess(`Agent "${agent.name}" berhasil dibuat!`);
       setCreateModalVisible(false);
@@ -196,6 +184,7 @@ const AiAgentPage = () => {
       maxTokens: agent.maxTokens,
       systemPrompt: agent.systemPrompt || '',
       fallbackReply: agent.fallbackReply || '',
+      language: agent.language || 'id',
     });
     setEditModalVisible(true);
   };
@@ -211,6 +200,7 @@ const AiAgentPage = () => {
         maxTokens: values.maxTokens,
         systemPrompt: values.systemPrompt || null,
         fallbackReply: values.fallbackReply || null,
+        language: values.language || 'id',
       });
       setAgents((prev) => prev.map((a) => (a.id === editingAgent.id ? updated : a)));
       showSuccess('Agent berhasil diupdate!');
@@ -309,9 +299,7 @@ const AiAgentPage = () => {
     return knowledgeMap[agent.id] ?? agent.knowledgeFiles ?? [];
   };
 
-  const availableSessions = sessions.filter(
-    (s) => !agents.some((a) => a.sessionId && a.sessionId === s.id),
-  );
+  const activeSession = sessions.find((session) => session.connected) || sessions[0] || null;
 
   // ---- KNOWLEDGE TABLE COLUMNS ----
   const getKnowledgeColumns = (agentId: string) => [
@@ -500,6 +488,9 @@ const AiAgentPage = () => {
                       <Descriptions.Item label="Session">
                         <Tag>{getSessionLabel(agent.sessionId)}</Tag>
                       </Descriptions.Item>
+                      <Descriptions.Item label="Language">
+                        <Tag>{agent.language || 'id'}</Tag>
+                      </Descriptions.Item>
                       <Descriptions.Item label="Model">
                         <Tag color="blue">{agent.model}</Tag>
                       </Descriptions.Item>
@@ -640,7 +631,7 @@ const AiAgentPage = () => {
           form={createForm}
           layout="vertical"
           onFinish={handleCreateAgent}
-          initialValues={{ isEnabled: true }}
+          initialValues={{ isEnabled: true, language: 'id' }}
         >
           <Form.Item
             name="name"
@@ -650,46 +641,51 @@ const AiAgentPage = () => {
             <Input placeholder="Contoh: CS Bot, Sales Assistant" prefix={<RobotOutlined />} />
           </Form.Item>
 
-          <Form.Item
-            name="sessionId"
-            label="WhatsApp Session"
-            rules={[{ required: true, message: 'Session wajib dipilih!' }]}
-            tooltip="Agent akan membalas pesan di session ini"
-          >
-            <Select
-              placeholder="Pilih session WhatsApp"
-              loading={fetchingSessions}
-              showSearch
-              filterOption={(input, option) =>
-                String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {availableSessions.map((session) => (
-                <Option key={session.id} value={session.id} label={session.label || session.id}>
-                  <Space>
-                    <Tag color={session.connected ? 'green' : 'default'} style={{ fontSize: 10 }}>
-                      {session.connected ? 'Online' : 'Offline'}
-                    </Tag>
-                    {session.label || session.id.slice(0, 16)}
-                    {session.meJid && (
-                      <Text type="secondary" style={{ fontSize: 11 }}>
-                        ({session.meJid})
-                      </Text>
-                    )}
-                  </Space>
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="Agent akan dibuat untuk session WhatsApp aktif"
+            description={activeSession ? `${activeSession.label || activeSession.id} ${activeSession.meJid ? `(${activeSession.meJid})` : ''}` : 'Belum ada session aktif yang terdeteksi.'}
+          />
 
           <Form.Item name="isEnabled" label="Aktifkan Agent" valuePropName="checked">
             <Switch checkedChildren="Aktif" unCheckedChildren="Nonaktif" />
           </Form.Item>
 
+          <Form.Item
+            name="language"
+            label="Bahasa"
+            rules={[{ required: true, message: 'Bahasa wajib dipilih!' }]}
+          >
+            <Select>
+              <Option value="id">Indonesia</Option>
+              <Option value="en">English</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="systemPrompt" label="System Prompt">
+            <TextArea
+              rows={4}
+              placeholder="Instruksi dasar untuk AI. Contoh: Jawab dengan ramah, singkat, dan fokus pada produk kami."
+              showCount
+              maxLength={2000}
+            />
+          </Form.Item>
+
+          <Form.Item name="fallbackReply" label="Fallback Reply">
+            <TextArea
+              rows={2}
+              placeholder="Balasan default jika AI gagal menjawab"
+              showCount
+              maxLength={500}
+            />
+          </Form.Item>
+
           <Form.Item style={{ marginBottom: 0 }}>
             <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
               <Button onClick={() => setCreateModalVisible(false)}>Batal</Button>
-              <Button type="primary" htmlType="submit" loading={creating} icon={<PlusOutlined />}>
+              <Button type="primary" htmlType="submit" loading={creating} icon={<PlusOutlined />} disabled={!activeSession}>
                 Buat Agent
               </Button>
             </Space>
@@ -789,6 +785,17 @@ const AiAgentPage = () => {
               <InputNumber min={50} max={4096} step={50} style={{ width: '100%' }} />
             </Form.Item>
           </div>
+
+          <Form.Item
+            name="language"
+            label="Bahasa"
+            rules={[{ required: true, message: 'Bahasa wajib dipilih!' }]}
+          >
+            <Select>
+              <Option value="id">Indonesia</Option>
+              <Option value="en">English</Option>
+            </Select>
+          </Form.Item>
 
           <Form.Item
             name="systemPrompt"

@@ -27,7 +27,7 @@ import {
   PictureOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
-import { waApi, type WhatsAppSession, type WhatsAppGroup, type GroupDmMembersResult } from '../../services/waApi';
+import { waApi, type WhatsAppGroup, type GroupDmMembersResult } from '../../services/waApi';
 import { useNotification } from '@/hooks/useNotification';
 
 const { Search, TextArea } = Input;
@@ -35,8 +35,7 @@ const { Option } = Select;
 const { Title } = Typography;
 
 const GroupsTab = () => {
-  const [sessions, setSessions] = useState<WhatsAppSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<string>('');
+  const [hasConnectedSession, setHasConnectedSession] = useState(false);
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<WhatsAppGroup[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -67,14 +66,8 @@ const GroupsTab = () => {
   const [loadingMembers, setLoadingMembers] = useState(false);
 
   useEffect(() => {
-    fetchSessions();
+    initGroups();
   }, []);
-
-  useEffect(() => {
-    if (selectedSession) {
-      fetchGroups(selectedSession);
-    }
-  }, [selectedSession]);
 
   useEffect(() => {
     if (searchText) {
@@ -87,26 +80,31 @@ const GroupsTab = () => {
     }
   }, [searchText, groups]);
 
-  const fetchSessions = async () => {
+  const initGroups = async () => {
     setFetching(true);
     try {
       const data = await waApi.getSessions();
       const connectedSessions = data.filter((s) => s.connected);
-      setSessions(connectedSessions);
+      setHasConnectedSession(connectedSessions.length > 0);
+
       if (connectedSessions.length > 0) {
-        setSelectedSession(connectedSessions[0].id);
+        await fetchGroups();
+      } else {
+        setGroups([]);
+        setFilteredGroups([]);
       }
     } catch (error: any) {
       showError(error.response?.data?.message || 'Gagal memuat sessions');
+      setHasConnectedSession(false);
     } finally {
       setFetching(false);
     }
   };
 
-  const fetchGroups = async (sessionId: string) => {
+  const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
-      const data = await waApi.getGroups(sessionId);
+      const data = await waApi.getGroups();
       setGroups(data?.groups || []);
       setFilteredGroups(data?.groups || []);
     } catch (error: any) {
@@ -153,19 +151,17 @@ const GroupsTab = () => {
   ];
 
   const handleSendToGroup = async (values: any) => {
-    if (!selectedGroupForSend || !selectedSession) return;
+    if (!selectedGroupForSend) return;
 
     setSendingMessage(true);
     try {
       if (sendMessageType === 'text') {
         await waApi.sendToGroupText({
-          sessionId: selectedSession,
           groupJid: selectedGroupForSend.id,
           text: values.text,
         });
       } else {
         await waApi.sendToGroupImage({
-          sessionId: selectedSession,
           groupJid: selectedGroupForSend.id,
           imageUrl: values.imageUrl,
           caption: values.caption,
@@ -182,7 +178,7 @@ const GroupsTab = () => {
   };
 
   const handleDmMembers = async (values: any) => {
-    if (!selectedGroupForDm || !selectedSession) return;
+    if (!selectedGroupForDm) return;
 
     setDmingMembers(true);
     try {
@@ -190,7 +186,6 @@ const GroupsTab = () => {
 
       if (dmMessageType === 'text') {
         result = await waApi.dmGroupMembersText({
-          sessionId: selectedSession,
           groupJid: selectedGroupForDm.id,
           text: values.text,
           delayMs: parseInt(values.delayMs) || 1500,
@@ -199,7 +194,6 @@ const GroupsTab = () => {
         });
       } else {
         result = await waApi.dmGroupMembersImage({
-          sessionId: selectedSession,
           groupJid: selectedGroupForDm.id,
           imageUrl: values.imageUrl,
           caption: values.caption,
@@ -226,12 +220,10 @@ const GroupsTab = () => {
   };
 
   const handleOpenMembers = async (group: WhatsAppGroup) => {
-    if (!selectedSession) return;
-    
     setSelectedGroupForMembers(group);
     setLoadingMembers(true);
     try {
-      const data = await waApi.getGroupMembers(selectedSession, group.id);
+      const data = await waApi.getGroupMembers(group.id);
       setGroupMembers(data?.members || []);
       setMembersModalVisible(true);
     } catch (error: any) {
@@ -258,7 +250,7 @@ const GroupsTab = () => {
     );
   }
 
-  if (sessions.length === 0) {
+  if (!hasConnectedSession) {
     return (
       <Empty
         description="No active sessions. Please connect a WhatsApp session first."
@@ -293,18 +285,6 @@ const GroupsTab = () => {
               </span>
             }
           />
-          <Select
-            value={selectedSession}
-            onChange={setSelectedSession}
-            style={{ width: 180 }}
-            placeholder="Select session"
-          >
-            {sessions.map((s) => (
-              <Select.Option key={s.id} value={s.id}>
-                {s.label || s.meJid?.split('@')[0] || s.id}
-              </Select.Option>
-            ))}
-          </Select>
         </Space>
       </div>
 

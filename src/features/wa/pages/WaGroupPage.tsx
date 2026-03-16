@@ -55,7 +55,6 @@ const WaGroupPage = () => {
         }
 
         const result = await waApi.sendToGroupText({
-          sessionId: values.sessionId,
           groupJid: values.groupJid.trim(),
           text: values.text.trim(),
         });
@@ -69,7 +68,6 @@ const WaGroupPage = () => {
         }
 
         const result = await waApi.sendToGroupImage({
-          sessionId: values.sessionId,
           groupJid: values.groupJid.trim(),
           imageUrl: values.imageUrl.trim(),
           caption: values.caption?.trim(),
@@ -112,7 +110,6 @@ const WaGroupPage = () => {
         }
 
         result = await waApi.dmGroupMembersText({
-          sessionId: values.sessionId,
           groupJid: values.groupJid.trim(),
           text: values.text.trim(),
           delayMs,
@@ -128,7 +125,6 @@ const WaGroupPage = () => {
         }
 
         result = await waApi.dmGroupMembersImage({
-          sessionId: values.sessionId,
           groupJid: values.groupJid.trim(),
           imageUrl: values.imageUrl.trim(),
           caption: values.caption?.trim(),
@@ -166,7 +162,7 @@ const WaGroupPage = () => {
 
     setLoadingGroups(true);
     try {
-      const response = await waApi.getGroups(sessionId.trim());
+      const response = await waApi.getGroups();
       setGroups(response.groups || []);
       if (activeTab === 'list') {
         showSuccess(`Berhasil memuat ${response.count || 0} group`);

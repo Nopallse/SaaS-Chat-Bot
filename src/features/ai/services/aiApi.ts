@@ -12,6 +12,7 @@ export interface AiAgent {
   maxTokens: number;
   systemPrompt: string | null;
   fallbackReply: string | null;
+  language?: string;
   createdAt: string;
   updatedAt: string;
   knowledgeFiles?: AiKnowledgeFile[];
@@ -29,10 +30,11 @@ export interface AiKnowledgeFile {
 }
 
 export interface CreateAgentRequest {
-  sessionId: string;
-  ownerId: string;
   name: string;
   isEnabled: boolean;
+  systemPrompt: string;
+  fallbackReply: string;
+  language: string;
 }
 
 export interface UpdateAgentRequest {
@@ -43,6 +45,7 @@ export interface UpdateAgentRequest {
   maxTokens?: number;
   systemPrompt?: string | null;
   fallbackReply?: string | null;
+  language?: string;
 }
 
 const normalizeAgentPayload = (payload: any): AiAgent | null => {
@@ -52,8 +55,7 @@ const normalizeAgentPayload = (payload: any): AiAgent | null => {
 
   if (!candidate || typeof candidate !== 'object') return null;
 
-  // Must have at least id + sessionId to be a valid agent, not a response wrapper
-  if (!candidate.id || !candidate.sessionId) return null;
+  if (!candidate.id) return null;
 
   return candidate as AiAgent;
 };
@@ -65,9 +67,9 @@ const normalizeKnowledgeList = (payload: any): AiKnowledgeFile[] => {
 };
 
 export const aiApi = {
-  // Get agent by WhatsApp session ID
-  getAgent: async (sessionId: string): Promise<AiAgent | null> => {
-    const response = await axiosInstance.get(`/ai/${sessionId}`);
+  // Get current agent for the owner's active WhatsApp session
+  getAgent: async (): Promise<AiAgent | null> => {
+    const response = await axiosInstance.get('/ai');
     return normalizeAgentPayload(response.data);
   },
 

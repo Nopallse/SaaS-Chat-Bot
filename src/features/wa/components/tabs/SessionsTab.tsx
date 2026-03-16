@@ -152,9 +152,9 @@ const SessionsTab = () => {
     }
   };
 
-  const handleLogout = async (sessionId: string) => {
+  const handleLogout = async (_sessionId: string) => {
     try {
-      await waApi.logoutSession(sessionId);
+      await waApi.logoutSession();
       showSuccess('Session logged out');
       fetchSessions();
     } catch (error: any) {

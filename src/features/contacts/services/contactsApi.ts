@@ -4,6 +4,7 @@ import type {
   WhatsAppContact,
   ContactsResponse,
   ImportResponse,
+  GroupImportResponse,
 } from '../types/contacts';
 
 export interface CreateWhatsAppContactRequest {
@@ -21,6 +22,8 @@ export interface UpdateWhatsAppContactRequest {
 }
 
 export type { EmailContact, WhatsAppContact, ContactsResponse, ImportResponse };
+
+export type { GroupImportResponse };
 
 export const contactsApi = {
   /**
@@ -40,6 +43,15 @@ export const contactsApi = {
     const payload: any = response.data;
     const data = payload?.data || payload;
     return data;
+  },
+
+  async importGroupContacts(groupJid: string): Promise<GroupImportResponse> {
+    const response = await axiosInstance.post('/contacts/whatsapp/import-group', {
+      groupJid,
+    });
+
+    const payload: any = response.data;
+    return payload?.data || payload;
   },
 
   /**

@@ -225,7 +225,7 @@ const WaSessionPage = () => {
       cancelText: 'Batal',
       onOk: async () => {
         try {
-          await waApi.logoutSession(sessionId);
+          await waApi.logoutSession();
           showSuccess('Logout berhasil!');
           if (currentSessionId === sessionId) {
             clearQrPolling();
