@@ -79,11 +79,15 @@ export const userPackageApi = {
     return inner?.subscription || null;
   },
 
-  createOrder: async (packageId: string): Promise<{ orderId: string; redirectUrl: string }> => {
+  createOrder: async (
+    packageId: string,
+  ): Promise<{ orderId: string; paymentId?: string; token?: string; redirectUrl?: string }> => {
     const response = await axiosInstance.post('/payment/create-order', { packageId });
     const inner = unwrap<any>(response.data);
     return {
       orderId: inner.orderId,
+      paymentId: inner?.payment?.id,
+      token: inner.token,
       redirectUrl: inner.redirectUrl,
     };
   },

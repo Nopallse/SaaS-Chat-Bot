@@ -146,3 +146,26 @@ export interface PaymentData {
 export interface UpdatePaymentDto {
   status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED';
 }
+
+export interface PaymentDetailData {
+  id: string;
+  userId: string;
+  packageId: string | null;
+  orderId: string;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED';
+  paymentType: string | null;
+  transactionId: string | null;
+  snapToken: string | null;
+  snapUrl: string | null;
+  paidAt: string | null;
+  metadata: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+}

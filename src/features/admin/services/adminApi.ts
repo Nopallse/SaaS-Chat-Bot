@@ -180,6 +180,11 @@ export const adminApi = {
     return unwrapPaginated<PaymentData>(response.data, page, pageSize);
   },
 
+  getPaymentById: async (id: string) => {
+    const response = await axiosInstance.get(`/admin/payments/${id}`);
+    return unwrap(response.data);
+  },
+
   updatePayment: async (id: string, data: UpdatePaymentDto) => {
     const response = await axiosInstance.patch(`/admin/payments/${id}`, data);
     return unwrap(response.data);

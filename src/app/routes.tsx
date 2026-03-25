@@ -13,11 +13,13 @@ const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'));
 const AuthCallbackPage = lazy(() => import('@/features/auth/pages/AuthCallbackPage'));
 const UserProfilePage = lazy(() => import('@/features/user/pages/UserProfilePage'));
 const UserPaymentPage = lazy(() => import('@/features/user/pages/UserPaymentPage'));
+const UserPackagesPage = lazy(() => import('@/features/user/pages/UserPackagesPage'));
 const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage'));
 const ManageUsersPage = lazy(() => import('@/features/admin/pages/ManageUsersPage'));
 const ManagePackagesPage = lazy(() => import('@/features/admin/pages/ManagePackagesPage'));
 const ManagePackageListsPage = lazy(() => import('@/features/admin/pages/ManagePackageListsPage'));
 const ManagePaymentsPage = lazy(() => import('@/features/admin/pages/ManagePaymentsPage'));
+const PaymentDetailPage = lazy(() => import('@/features/admin/pages/PaymentDetailPage'));
 const ManageClientLogosPage = lazy(() => import('@/features/admin/pages/ManageClientLogosPage'));
 const WaSessionPage = lazy(() => import('@/features/wa/pages/WaSessionPage'));
 const WaChatConsolePage = lazy(() => import('@/features/wa/pages/WaChatConsolePage'));
@@ -55,6 +57,7 @@ export const AppRoutes = () => {
           >
             <Route path="/user/profile" element={<UserProfilePage />} />
             <Route path="/user/payment" element={<UserPaymentPage />} />
+            <Route path="/user/packages" element={<UserPackagesPage />} />
             <Route path="/wa" element={<WaPage />} />
             <Route path="/wa/session" element={<WaSessionPage />} />
             <Route path="/wa/broadcast" element={<Navigate to="/wa?tab=broadcasts" replace />} />
@@ -78,6 +81,7 @@ export const AppRoutes = () => {
             <Route path="/admin/packages" element={<ManagePackagesPage />} />
             <Route path="/admin/package-lists" element={<ManagePackageListsPage />} />
             <Route path="/admin/payments" element={<ManagePaymentsPage />} />
+            <Route path="/admin/payments/:id" element={<PaymentDetailPage />} />
             <Route path="/admin/client-logos" element={<ManageClientLogosPage />} />
           </Route>
 

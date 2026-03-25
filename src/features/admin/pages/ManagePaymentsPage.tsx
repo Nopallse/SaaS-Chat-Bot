@@ -17,16 +17,19 @@ import {
     DeleteOutlined,
     EditOutlined,
     DownloadOutlined,
+    EyeOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../services/adminApi';
 import type { PaymentData, UpdatePaymentDto } from '../types/admin';
+import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Search } = Input;
 
 const ManagePaymentsPage = () => {
+    const navigate = useNavigate();
     const [data, setData] = useState<PaymentData[]>([]);
     const [loading, setLoading] = useState(false);
     const [total, setTotal] = useState(0);
@@ -150,6 +153,7 @@ const ManagePaymentsPage = () => {
             key: 'actions',
             render: (_, record) => (
                 <Space>
+                    <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/admin/payments/${record.id}`)} />
                     <Button type="link" icon={<EditOutlined />} onClick={() => handleEditStatus(record)} />
                     <Popconfirm
                         title="Hapus pembayaran ini?"
