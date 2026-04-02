@@ -97,4 +97,10 @@ export const userPackageApi = {
     const inner = unwrap<any>(response.data);
     return Array.isArray(inner?.data) ? inner.data : [];
   },
+
+  checkPaymentStatus: async (orderId: string): Promise<{ success: boolean }> => {
+    const response = await axiosInstance.post(`/payment/check-status/${orderId}`);
+    const inner = unwrap<any>(response.data);
+    return { success: inner?.success ?? true };
+  },
 };
