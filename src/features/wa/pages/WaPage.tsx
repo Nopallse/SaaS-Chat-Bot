@@ -1,18 +1,16 @@
 import { useState, useMemo } from 'react';
-import { Button, Typography } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Typography } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 import {
   SessionsTab,
   ContactsTab,
   GroupsTab,
   BroadcastsTab,
-  AutomationsTab,
 } from '../components/tabs';
 
 const { Title, Text } = Typography;
 
-type TabKey = 'sessions' | 'contacts' | 'groups' | 'broadcasts' | 'automations';
+type TabKey = 'sessions' | 'contacts' | 'groups' | 'broadcasts' ;
 
 const tabConfig: { key: TabKey; label: string; description: string }[] = [
   {
@@ -35,11 +33,6 @@ const tabConfig: { key: TabKey; label: string; description: string }[] = [
     label: 'Broadcasts',
     description: 'Send messages to multiple contacts and groups efficiently.',
   },
-  {
-    key: 'automations',
-    label: 'Automations',
-    description: 'Automate messages based on triggers & schedules',
-  },
 ];
 
 const WaPage = () => {
@@ -57,12 +50,6 @@ const WaPage = () => {
     setSearchParams({ tab: key });
   };
 
-  const handleNewBroadcast = () => {
-    // Navigate to broadcast tab or open modal
-    setActiveTab('broadcasts');
-    setSearchParams({ tab: 'broadcasts' });
-  };
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'sessions':
@@ -72,9 +59,7 @@ const WaPage = () => {
       case 'groups':
         return <GroupsTab />;
       case 'broadcasts':
-        return <BroadcastsTab onNewBroadcast={handleNewBroadcast} />;
-      case 'automations':
-        return <AutomationsTab />;
+        return <BroadcastsTab />;
       default:
         return <SessionsTab />;
     }
@@ -97,15 +82,6 @@ const WaPage = () => {
           </Title>
           <Text type="secondary">{currentTabConfig.description}</Text>
         </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          size="large"
-          onClick={handleNewBroadcast}
-          style={{ borderRadius: 8 }}
-        >
-          New Broadcast
-        </Button>
       </div>
 
       {/* Tabs */}

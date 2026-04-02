@@ -22,12 +22,15 @@ export interface AiKnowledgeFile {
   id: string;
   agentId: string;
   fileName: string;
+  fileType?: AiKnowledgeFileType;
   fileUrl: string;
   fileSize: number | null;
   status: 'PROCESSING' | 'READY' | 'FAILED';
   createdAt: string;
   updatedAt: string;
 }
+
+export type AiKnowledgeFileType = 'COMPANY_PROFILE' | 'PRICELIST' | 'FAQ';
 
 export interface CreateAgentRequest {
   name: string;
@@ -105,10 +108,15 @@ export const aiApi = {
     return agent;
   },
 
-  // Upload knowledge file (PDF)
-  uploadKnowledge: async (agentId: string, file: File): Promise<{ success: boolean }> => {
+  // Upload knowledge file (PDF) with category
+  uploadKnowledge: async (
+    agentId: string,
+    file: File,
+    fileType: AiKnowledgeFileType,
+  ): Promise<{ success: boolean }> => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('fileType', fileType);
     const response = await axiosInstance.post(`/ai/${agentId}/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

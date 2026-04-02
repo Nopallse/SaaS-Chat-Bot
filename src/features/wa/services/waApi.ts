@@ -146,6 +146,22 @@ export interface GroupDmMembersResult {
   }>;
 }
 
+export interface GroupMember {
+  phone: string | null;
+  lid: string | null;
+  jid: string;
+  isAdmin: boolean;
+  adminType: string | null;
+  hasPhoneNumber: boolean;
+}
+
+export interface GroupMembersResponse {
+  groupJid: string;
+  groupSubject: string;
+  total: number;
+  members: GroupMember[];
+}
+
 export interface WhatsAppConversation {
   id: string;
   sessionId: string;
@@ -349,10 +365,16 @@ export const waApi = {
   },
 
   // Get group member list
-  getGroupMembers: async (groupJid: string): Promise<{ members: Array<{ id: string; admin?: string | null }> }> => {
+  getGroupMembers: async (groupJid: string): Promise<GroupMembersResponse> => {
     const response = await axiosInstance.get(`/wa/group/${encodeURIComponent(groupJid)}/members`);
     const payload: any = response.data;
-    return payload?.data || payload;
+    const data = payload?.data || payload;
+    return {
+      groupJid: data?.groupJid || groupJid,
+      groupSubject: data?.groupSubject || '',
+      total: data?.total ?? (Array.isArray(data?.members) ? data.members.length : 0),
+      members: Array.isArray(data?.members) ? data.members : [],
+    };
   },
 };
 

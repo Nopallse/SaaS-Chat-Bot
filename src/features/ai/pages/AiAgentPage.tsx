@@ -38,7 +38,12 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { waApi, type WhatsAppSession } from '@/features/wa/services/waApi';
-import { aiApi, type AiAgent, type AiKnowledgeFile } from '../services/aiApi';
+import {
+  aiApi,
+  type AiAgent,
+  type AiKnowledgeFile,
+  type AiKnowledgeFileType,
+} from '../services/aiApi';
 import { useNotification } from '@/hooks/useNotification';
 
 const { Title, Text, Paragraph } = Typography;
@@ -76,6 +81,17 @@ const TEMPERATURE_PRESETS = [
   },
 ];
 
+const KNOWLEDGE_TYPE_OPTIONS: { label: string; value: AiKnowledgeFileType }[] = [
+  { label: 'Company Profile', value: 'COMPANY_PROFILE' },
+  { label: 'Pricelist', value: 'PRICELIST' },
+  { label: 'FAQ', value: 'FAQ' },
+];
+
+const getKnowledgeTypeLabel = (fileType?: AiKnowledgeFileType) => {
+  if (!fileType) return '-';
+  return KNOWLEDGE_TYPE_OPTIONS.find((option) => option.value === fileType)?.label || fileType;
+};
+
 const getClosestTemperaturePreset = (value: number) => {
   return TEMPERATURE_PRESETS.reduce((closest, current) => {
     const currentDiff = Math.abs(current.value - value);
@@ -96,6 +112,7 @@ const AiAgentPage = () => {
   const [saving, setSaving] = useState(false);
   const [knowledgeMap, setKnowledgeMap] = useState<Record<string, AiKnowledgeFile[]>>({});
   const [loadingKnowledge, setLoadingKnowledge] = useState<Record<string, boolean>>({});
+  const [knowledgeTypeMap, setKnowledgeTypeMap] = useState<Record<string, AiKnowledgeFileType>>({});
 
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -244,12 +261,12 @@ const AiAgentPage = () => {
   };
 
   // ---- UPLOAD KNOWLEDGE ----
-  const handleUploadKnowledge = async (agentId: string, file: File) => {
+  const handleUploadKnowledge = async (agentId: string, file: File, fileType: AiKnowledgeFileType) => {
     setUploading(agentId);
     try {
-      const result = await aiApi.uploadKnowledge(agentId, file);
+      const result = await aiApi.uploadKnowledge(agentId, file, fileType);
       if (result.success) {
-        showSuccess(`File "${file.name}" berhasil diupload dan sedang diproses`);
+        showSuccess(`File "${file.name}" (${getKnowledgeTypeLabel(fileType)}) berhasil diupload dan sedang diproses`);
         await fetchKnowledge(agentId);
       } else {
         showError('Upload gagal, silakan coba lagi');
@@ -299,6 +316,10 @@ const AiAgentPage = () => {
     return knowledgeMap[agent.id] ?? agent.knowledgeFiles ?? [];
   };
 
+  const getSelectedKnowledgeType = (agentId: string): AiKnowledgeFileType => {
+    return knowledgeTypeMap[agentId] ?? 'FAQ';
+  };
+
   const activeSession = sessions.find((session) => session.connected) || sessions[0] || null;
 
   // ---- KNOWLEDGE TABLE COLUMNS ----
@@ -318,6 +339,15 @@ const AiAgentPage = () => {
             <Text>{name}</Text>
           )}
         </Space>
+      ),
+    },
+    {
+      title: 'Type',
+      dataIndex: 'fileType',
+      key: 'fileType',
+      width: 150,
+      render: (fileType?: AiKnowledgeFileType) => (
+        <Tag color="blue">{getKnowledgeTypeLabel(fileType)}</Tag>
       ),
     },
     {
@@ -436,6 +466,7 @@ const AiAgentPage = () => {
             const knowledgeFiles = getKnowledgeFiles(agent);
             const isUploading = uploading === agent.id;
             const isKnowledgeLoading = loadingKnowledge[agent.id] ?? false;
+            const selectedKnowledgeType = getSelectedKnowledgeType(agent.id);
 
             return (
               <Card
@@ -586,23 +617,37 @@ const AiAgentPage = () => {
                       />
                     )}
 
-                    <Upload
-                      accept=".pdf"
-                      showUploadList={false}
-                      beforeUpload={(file) => {
-                        handleUploadKnowledge(agent.id, file);
-                        return false;
-                      }}
-                    >
-                      <Button
-                        icon={<UploadOutlined />}
-                        loading={isUploading}
-                        style={{ marginTop: 8 }}
-                        block
+                    <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+                      <Select
+                        value={selectedKnowledgeType}
+                        onChange={(value: AiKnowledgeFileType) => {
+                          setKnowledgeTypeMap((prev) => ({ ...prev, [agent.id]: value }));
+                        }}
                       >
-                        Upload PDF Knowledge
-                      </Button>
-                    </Upload>
+                        {KNOWLEDGE_TYPE_OPTIONS.map((option) => (
+                          <Option key={option.value} value={option.value}>
+                            {option.label}
+                          </Option>
+                        ))}
+                      </Select>
+
+                      <Upload
+                        accept=".pdf"
+                        showUploadList={false}
+                        beforeUpload={(file) => {
+                          handleUploadKnowledge(agent.id, file, selectedKnowledgeType);
+                          return false;
+                        }}
+                      >
+                        <Button
+                          icon={<UploadOutlined />}
+                          loading={isUploading}
+                          block
+                        >
+                          Upload PDF Knowledge
+                        </Button>
+                      </Upload>
+                    </div>
                   </div>
                 </div>
               </Card>

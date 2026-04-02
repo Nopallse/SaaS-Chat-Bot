@@ -27,7 +27,12 @@ import {
   PictureOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
-import { waApi, type WhatsAppGroup, type GroupDmMembersResult } from '../../services/waApi';
+import {
+  waApi,
+  type WhatsAppGroup,
+  type GroupDmMembersResult,
+  type GroupMember,
+} from '../../services/waApi';
 import { useNotification } from '@/hooks/useNotification';
 
 const { Search, TextArea } = Input;
@@ -62,7 +67,7 @@ const GroupsTab = () => {
   // Members View Modal State
   const [membersModalVisible, setMembersModalVisible] = useState(false);
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<WhatsAppGroup | null>(null);
-  const [groupMembers, setGroupMembers] = useState<Array<{ id: string; admin?: string | null }>>([]);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
   useEffect(() => {
@@ -591,23 +596,46 @@ const GroupsTab = () => {
         ) : (
           <Table
             dataSource={groupMembers}
-            rowKey="id"
+            rowKey={(record, index) => record.jid || record.lid || record.phone || String(index)}
             pagination={{ pageSize: 10 }}
             size="small"
             columns={[
               {
-                title: 'Member ID',
-                dataIndex: 'id',
-                key: 'id',
-                render: (id: string) => <code style={{ fontSize: '11px' }}>{id}</code>,
+                title: 'Phone',
+                dataIndex: 'phone',
+                key: 'phone',
+                render: (phone: string | null) => phone ? <code style={{ fontSize: '11px' }}>{phone}</code> : <span style={{ color: '#999' }}>-</span>,
+              },
+              {
+                title: 'LID',
+                dataIndex: 'lid',
+                key: 'lid',
+                render: (lid: string | null) => lid ? <code style={{ fontSize: '11px' }}>{lid}</code> : <span style={{ color: '#999' }}>-</span>,
+              },
+              {
+                title: 'JID',
+                dataIndex: 'jid',
+                key: 'jid',
+                render: (jid: string) => <code style={{ fontSize: '11px' }}>{jid}</code>,
               },
               {
                 title: 'Role',
-                dataIndex: 'admin',
-                key: 'admin',
-                render: (admin: string | null | undefined) => (
-                  <Tag color={admin ? 'gold' : 'default'}>
-                    {admin ? 'Admin' : 'Member'}
+                key: 'role',
+                render: (_: unknown, member: GroupMember) => (
+                  <Tag color={member.isAdmin ? 'gold' : 'default'}>
+                    {member.isAdmin
+                      ? `Admin${member.adminType ? ` (${member.adminType})` : ''}`
+                      : 'Member'}
+                  </Tag>
+                ),
+              },
+              {
+                title: 'Phone Valid',
+                dataIndex: 'hasPhoneNumber',
+                key: 'hasPhoneNumber',
+                render: (hasPhoneNumber: boolean) => (
+                  <Tag color={hasPhoneNumber ? 'success' : 'default'}>
+                    {hasPhoneNumber ? 'Yes' : 'No'}
                   </Tag>
                 ),
               },
